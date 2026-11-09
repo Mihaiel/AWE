@@ -56,3 +56,13 @@ Tested after the fix: evidence cards render immediately once data loads, no more
 Found this one just reading the console on a normal page load, no UI symptom at all: `initApp()` in `js/main.js` logs `"First note preview:"` followed by whatever `loadNoteAsync("E01")` returns. That function returns a Promise, but the code never awaited or chained it, so `console.log` just printed the Promise object itself. To make it obvious this wasn't just an empty-string edge case, I seeded a note for E01 in localStorage first, reloaded, and the console showed `{[[PromiseState]]: fulfilled, [[PromiseResult]]: "Checked the profile mismatch..."}` instead of the plain note text.
 
 Fixed by chaining a `.then()` onto `loadNoteAsync("E01")` instead of using its return value directly, kept it in `.then()` style rather than jumping to `async`/`await` since that conversion is specifically Demo 9's job. After the fix the console correctly logs just the note string, confirmed with the same seeded-note setup as before and after.
+
+### Demo 5 — Full walkthrough & reflection
+
+Did a proper stress-test pass instead of just reading code: hand-edited `localStorage` keys to invalid JSON, clicked nav buttons with the console open, rechecked every view the same way I did back in Demo 1's testing.
+
+The big one: corrupting `remotion_notes` in `localStorage` and reloading bricks the entire app, stuck forever on "Loading case file…". `loadNotesFromStorage()` in `storage.js` had no try/catch around its `JSON.parse`, and it runs synchronously near the top of `initApp()`, so the exception took `setupEventListeners()` and `loadAllData()` down with it. Same bug, smaller scope, in `loadHypothesisFromStorage()` in `workspace.js`, that one only kills the hypothesis-restore step inside `renderWorkspace()` since it's the last thing that function does. Fixed both with a try/catch, same pattern `loadBookmarksFromStorage()` already used.
+
+Also fixed the Timeline's "Location: [object Object]" (was pushing the location object itself instead of `.name`/`.id` into the array it joins into a string), and the nav-button console error flagged back in Demo 1 (`var i` in the click-listener loop, changed to `let i` so each closure gets its own binding instead of sharing one that's already past the end of the array by the time anyone clicks).
+
+For the live I would be presenting Demo 2's mutation bug since it can be visualised at best. Worth noting: if I'd fixed Demo 3 (the stuck spinner) before Demo 2 (the array aliasing), Demo 2's bug would've been visible directly in the Evidence view too once the list started rendering, not just in Workspace. Fixing Demo 2 first meant that interaction never actually happened. Everything else was isolated.

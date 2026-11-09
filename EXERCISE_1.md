@@ -34,7 +34,7 @@ your fix works.
 | 2 | Bug hunt — mutation/reference bug | ☑ |
 | 3 | Bug hunt — an asynchronous/Promise-handling bug | ☑ |
 | 4 | Bug hunt — silent (console-only) bug | ☑ |
-| 5 | Bug hunt — full walkthrough & reflection | ☐ |
+| 5 | Bug hunt — full walkthrough & reflection | ☑ |
 | 6 | Use the JavaScript debugger | ☐ |
 | 7 | DevTools tour (Console/Network/Application/Elements) | ☐ |
 | 8 | Clean coding: globals, `var`/`let`/`const`, code smells | ☐ |
@@ -208,19 +208,35 @@ same filter twice. Keep going past Demos 2–4 — this app does not have only t
 
 **Tasks**
 
-- [ ] For every bug you find (beyond the three already covered), write down: reproduction steps,
+- [x] For every bug you find (beyond the three already covered), write down: reproduction steps,
       expected vs. actual behavior, root cause, the fix, and how you verified it.
-- [ ] Pick one bug from your full list (any of them, including Demos 2–4) and prepare to show it
+
+  **Bug A — corrupting the notes key in localStorage bricks the entire app.** Repro: open DevTools, go to Application/Storage, edit the `remotion_notes` key to something invalid like `{not valid json`, reload. Expected: the app should at worst lose your notes. Actual: the app never even finishes loading, "Loading case file…" spins forever, nothing works, not even navigation. Root cause: `loadNotesFromStorage()` in `js/storage.js` did `state.notesStore = JSON.parse(raw);` with no try/catch, and it's called synchronously near the very start of `initApp()`, before `setupEventListeners()` and `loadAllData()`. An uncaught `SyntaxError` there aborts the rest of `initApp()`, so none of the event listeners get attached and no data ever loads. Confirmed with the exact console stack trace (`at loadNotesFromStorage ... at initApp`). Fixed by wrapping the `JSON.parse` in a try/catch that falls back to an empty notes object, same pattern `loadBookmarksFromStorage()` already used. Verified by corrupting the key again after the fix, the app now loads normally with a console warning instead of dying.
+
+  **Bug B — same thing, smaller blast radius, for the hypothesis draft.** Repro: corrupt the `remotion_hypothesis` key, go to the Workspace view. Expected: either the draft loads or, if it can't, the rest of the view still works. Actual: `loadHypothesisFromStorage()` in `js/views/workspace.js` throws for the same reason (`JSON.parse` with no try/catch), but since it's the last call inside `renderWorkspace()`, only the hypothesis-restoring part fails, bookmarks and notes still render fine, just with a console error and a blank hypothesis form. Fixed the same way as Bug A. Verified the same way, the form just starts blank with a warning logged, nothing else breaks.
+
+  **Bug C — Timeline shows "Location: [object Object]".** Repro: open the Timeline view, look at the location line under any event. Expected: something like "L01 - Human-Robot Interaction Laboratory". Actual: literally the text "[object Object]". Root cause: in `js/views/timeline.js`, `renderTimeline()` does `eventLocationNames.push(evtLoc || item.locationIds[el]);`, pushing the whole location *object* straight into the array it later joins into a string, instead of pulling out `.name`/`.id` like the evidence detail view already does for the same kind of lookup. Fixed by pushing `evtLoc.id + " - " + evtLoc.name` instead, matching the pattern used elsewhere. Verified visually, the location now reads correctly on every timeline entry.
+
+  **Bug D — nav buttons throw a console error on every click.** Already flagged back in Demo 1. Repro: click any nav button, open console. Expected: just the view switches, maybe a clean log line. Actual: `Uncaught TypeError: Cannot read properties of undefined (reading 'getAttribute')`, every single click. Root cause: `setupEventListeners()` in `js/main.js` loops with `var i` and registers one closure per button that reads `navButtons[i]` when it's actually clicked, long after the loop has finished and `i` already equals `navButtons.length`. Fixed by changing `var i` to `let i`, which gives every iteration (and therefore every closure) its own `i` instead of one shared one. Verified: clicking nav buttons now logs `nav clicked: <view>` cleanly with no error.
+
+- [x] Pick one bug from your full list (any of them, including Demos 2–4) and prepare to show it
       live: the broken behavior, then your fix. **Commit the pre-fix state (or note its commit
       hash) so you can diff broken vs. fixed on demand in class.**
 
+  Picking the Demo 2 mutation/reference bug for this, it has its own dedicated commit (nothing else bundled into it), it's easy to narrate, and it's a good one to reason through live since the broken behavior is genuinely non-obvious. `git show <demo-2-commit-hash>` on this repo diffs cleanly to just that one line. Bug A (the localStorage one from this demo) is my backup, it's more dramatic to watch break live since the whole app just hangs, but I like that Demo 2 forces you to actually explain reference vs. copy on the spot rather than just pointing at a visibly broken screen.
+
 **Questions** (depend on the tasks above)
 
-- [ ] For the bug you chose to present: walk through the exact user actions and system state that
+- [x] For the bug you chose to present: walk through the exact user actions and system state that
       trigger it, live, starting from the pre-fix commit.
-- [ ] Across all the bugs you found, did fixing one ever change the symptoms of, reveal, or
+
+  Starting from the pre-fix commit: data loads, `loadEvidenceData()` sets `filteredEvidence = allEvidence`, same array, two names. I open the Evidence view and change the sort dropdown, `handleSortChange()` sorts `filteredEvidence` in place, which (being the same array) reorders `allEvidence` too, live, in front of everyone. I then switch to the Workspace view, which always re-renders from `allEvidence` directly, and the hypothesis dropdown shows the evidence in the scrambled order instead of E01...E18. Then I check out the fix commit and do the exact same thing again, Workspace keeps the correct order no matter how I sort Evidence, because `filteredEvidence` is its own array now.
+
+- [x] Across all the bugs you found, did fixing one ever change the symptoms of, reveal, or
       accidentally fix another? If so, explain the relationship. If not, how did you confirm your
       fixes were properly isolated from each other?
+
+  There's one real relationship, even though it never actually caused trouble because of the order I fixed things in. Before Demo 3's fix, the evidence list never rendered at all, so Demo 2's mutation bug (sorting `filteredEvidence` corrupting `allEvidence`) had no way to show up *inside* the Evidence view itself, the only place it was ever visible was Workspace, reading `allEvidence` in whatever order it ended up in. If I had fixed Demo 3 (the loading spinner) before Demo 2 (the aliasing), sorting the now-visible evidence list would have immediately shown the corrupted order right there in the Evidence view too, not just in Workspace, the same bug would've looked worse once the list was actually visible. Because I fixed Demo 2 first, that interaction never got the chance to surface. For the rest (Bugs A, B, C, D here, plus Demo 4), I didn't find any real interaction, they touch completely different files and functions (`storage.js`'s notes parsing, `workspace.js`'s hypothesis parsing, `timeline.js`'s location lookup, `main.js`'s nav loop), so I confirmed isolation the straightforward way: after every single fix I re-ran the full walkthrough across all five views again and checked that every previously-fixed bug's repro still showed the fixed behavior, not just the one I'd just touched.
 
 ---
 

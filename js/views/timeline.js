@@ -69,7 +69,9 @@ export function renderTimeline() {
     var eventLocationNames = [];
     for (var el = 0; el < item.locationIds.length; el++) {
       var evtLoc = findLocationById(item.locationIds[el]);
-      eventLocationNames.push(evtLoc || item.locationIds[el]);
+      // evtLoc is an object (id, name, ...) - push its name, not the
+      // object itself, or this renders as "[object Object]". Demo 5.
+      eventLocationNames.push(evtLoc ? evtLoc.id + " - " + evtLoc.name : item.locationIds[el]);
     }
     if (eventLocationNames.length > 0) {
       html += '<p class="evidence-meta">Location: ' + eventLocationNames.join(", ") + "</p>";

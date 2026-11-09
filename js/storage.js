@@ -38,7 +38,16 @@ export function loadNotesFromStorage() {
     return;
   }
 
-  state.notesStore = JSON.parse(raw);
+  // Same deal as loadBookmarksFromStorage() above - a hand-edited or
+  // corrupted value here used to throw and take the whole app's boot
+  // sequence down with it (setupEventListeners/loadAllData never ran
+  // afterwards). See CHANGES.MD / Demo 5.
+  try {
+    state.notesStore = JSON.parse(raw);
+  } catch (err) {
+    console.warn("Could not read stored notes, starting empty", err);
+    state.notesStore = {};
+  }
 }
 
 export function loadNoteAsync(evidenceId) {

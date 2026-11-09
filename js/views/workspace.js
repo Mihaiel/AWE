@@ -128,7 +128,16 @@ function loadHypothesisFromStorage() {
   var raw = localStorage.getItem(STORAGE_KEY_HYPOTHESIS);
   if (!raw) return;
 
-  var draft = JSON.parse(raw);
+  // A corrupted value here used to throw out of renderWorkspace(), which
+  // skipped restoring the draft silently (console error, same otherwise).
+  // See CHANGES.MD / Demo 5.
+  var draft;
+  try {
+    draft = JSON.parse(raw);
+  } catch (err) {
+    console.warn("Could not read stored hypothesis draft, ignoring it", err);
+    return;
+  }
 
   document.getElementById("hypSuspect").value = draft.suspectId || "";
   document.getElementById("hypNature").value = draft.nature || "";
