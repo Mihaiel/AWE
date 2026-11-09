@@ -66,3 +66,9 @@ The big one: corrupting `remotion_notes` in `localStorage` and reloading bricks 
 Also fixed the Timeline's "Location: [object Object]" (was pushing the location object itself instead of `.name`/`.id` into the array it joins into a string), and the nav-button console error flagged back in Demo 1 (`var i` in the click-listener loop, changed to `let i` so each closure gets its own binding instead of sharing one that's already past the end of the array by the time anyone clicks).
 
 For the live I would be presenting Demo 2's mutation bug since it can be visualised at best. Worth noting: if I'd fixed Demo 3 (the stuck spinner) before Demo 2 (the array aliasing), Demo 2's bug would've been visible directly in the Evidence view too once the list started rendering, not just in Workspace. Fixing Demo 2 first meant that interaction never actually happened. Everything else was isolated.
+
+### Demo 6 — Use the JavaScript debugger
+
+No code changes here, this one's just Safari's Web Inspector. Switched to branch `01/02` on purpose since it still has the Demo 1 nav-button bug unfixed, good target for this. Set a breakpoint inside the nav-button click callback in `setupEventListeners()` (`js/main.js`), stepped through it with step over/into/out, and watched the Call Stack panel confirm the pause came from the button's own click listener. Hovering `i` next to `navButtons.length` at the paused moment made the closure bug obvious in a way a single `console.log` wouldn't have, without also separately printing the length and reasoning about timing after the fact.
+
+Didn't get to the conditional breakpoint/logpoint or the live Scope-panel variable edit yet, left those two tasks and their matching question unticked rather than claim them.

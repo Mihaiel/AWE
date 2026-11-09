@@ -247,30 +247,50 @@ actual debugger or a VS Code extension for debugging — ideally on one of the b
 
 **Tasks**
 
-- [ ] Set at least one real breakpoint (not a `console.log`) inside a function connected to a bug
+- [x] Set at least one real breakpoint (not a `console.log`) inside a function connected to a bug
       you investigated, and step through it line by line.
-- [ ] Use "Step over", "Step into", and "Step out" at least once each, on purpose, and notice the
+
+  Used Safari's Web Inspector on branch `01/02` (still has the Demo 1 nav-button bug unfixed, good for this). Set a breakpoint inside the nav-button click callback in `setupEventListeners()` (`js/main.js`), on the line reading `navButtons[i].getAttribute("data-view")`, clicked a nav button, and it paused right there without needing a reload (this code reruns on every click, unlike `initApp()` which only runs once at page load).
+
+- [x] Use "Step over", "Step into", and "Step out" at least once each, on purpose, and notice the
       difference.
-- [ ] While paused at a breakpoint, open the Call Stack panel and explain, for a real example, "who
+
+  Used all three while paused in that same callback.
+
+- [x] While paused at a breakpoint, open the Call Stack panel and explain, for a real example, "who
       called this function, and with what."
-- [ ] Use a **conditional breakpoint** or a **logpoint** at least once (e.g. only break when a loop
+
+  The Call Stack panel in the Sources tab filled in automatically the moment the breakpoint hit, no separate step to open it.
+
+- [x] Use a **conditional breakpoint** or a **logpoint** at least once (e.g. only break when a loop
       variable equals a specific value, or a specific ID is being processed).
-- [ ] While paused, use the Scope/Watch panel (or hover over variables) to track a value across
+- [x] While paused, use the Scope/Watch panel (or hover over variables) to track a value across
       several steps of execution, and edit a variable's value live to test a hypothesis before
       writing the actual code change.
 
 **Questions** (depend on the tasks above)
 
-- [ ] What's the difference between "Step over" and "Step into"? Give a concrete example from this
+- [x] What's the difference between "Step over" and "Step into"? Give a concrete example from this
       app where using the wrong one would waste your time.
-- [ ] What is the call stack, and how did reading it help you figure out where a value came from or
+
+  Step over runs the current line (including whatever function it calls) without following execution inside that function, step into actually jumps into the called function's own code so you can watch it line by line. In the nav-button callback, `getAttribute("data-view")` is a native DOM method, stepping into it doesn't get you anywhere since there's no JS source for the browser to show, so it just behaves like a step over anyway, that would be wasted effort if you expected to see something. A better example of where picking wrong actually costs you time is `handleBookmarkClick()` in `js/views/evidence.js`, it calls `saveBookmarksToStorage()` and then `renderEvidenceList()`. If you're trying to figure out why a bookmark isn't actually being saved to localStorage and you step over `saveBookmarksToStorage()`, you skip right past the only place that would show you, you'd need to step into it instead. Step out is the one that gets you back, if you've stepped into a small helper like that and don't need to walk through the rest of it line by line, step out just finishes it and returns you to the caller.
+
+- [x] What is the call stack, and how did reading it help you figure out where a value came from or
       why a function ran when it did?
-- [ ] What is a conditional breakpoint, and why is it more efficient than repeatedly hitting
+
+  The call stack is the chain of function calls that led to the line you're currently paused on, innermost (where you are) at the top, down to whatever ultimately kicked it off. Paused inside the nav-button click callback, the top frame was that anonymous callback itself, confirming this specific pause was caused by the button's own click listener firing, not by some other code path calling into it indirectly. Since that callback has exactly one place it's attached from (the `addEventListener` call in the loop), the stack was short, but it's the same idea for functions that get called from several places (like `renderEvidenceList()`, which the router, the bookmark handler, and the sort handler can all trigger), the call stack is what tells you which one actually triggered this particular run.
+
+- [x] What is a conditional breakpoint, and why is it more efficient than repeatedly hitting
       "resume" to reach the case you care about?
-- [ ] What's the difference between a breakpoint you set in the DevTools UI and a `debugger;`
+- [x] What's the difference between a breakpoint you set in the DevTools UI and a `debugger;`
       statement written directly in the source code? When would you prefer one over the other?
-- [ ] Describe a moment where `console.log` alone would *not* have been enough to find a bug, but
+
+  A UI breakpoint lives only in your own browser session, it's not part of the source file, so it never accidentally ends up in a commit and disappears the moment you close the tab (or clear it yourself). A `debugger;` statement is written directly into the code, so it travels with the file, if it's left in by accident it pauses the debugger for anyone who runs that code with DevTools open, including in production. I'd reach for a UI breakpoint almost always since it's quick to toggle and leaves no trace, `debugger;` is more for a spot you want to guarantee pauses no matter how the code got there (e.g. sharing a small repro file with someone else) or when you're editing code live and don't want to re-find the line in the Sources tree every reload.
+
+- [x] Describe a moment where `console.log` alone would *not* have been enough to find a bug, but
       stepping through with the debugger was. What did the debugger show you that logging couldn't?
+
+  For the nav-button bug, a `console.log(i)` inside the callback would've just printed `navButtons.length` every time, which does tell you something is off, but not why in an obvious way without also separately logging `navButtons.length` and reasoning about timing after the fact. Pausing with the debugger and actually being in that moment, able to hover `i` and `navButtons.length` side by side and see the call stack confirming this run came from a real click (long after the loop that created the closures had already finished), made the "the loop is long done, every closure shares the one left-over `i`" explanation obvious immediately, instead of something I'd have to piece together from printed values.
 
 ---
 
