@@ -30,7 +30,7 @@ your fix works.
 
 | # | Demo | Ready? |
 |---|---|---|
-| 1 | Split the app into JS modules | ☐ |
+| 1 | Split the app into JS modules | ☑ |
 | 2 | Bug hunt — mutation/reference bug | ☐ |
 | 3 | Bug hunt — an asynchronous/Promise-handling bug | ☐ |
 | 4 | Bug hunt — silent (console-only) bug | ☐ |
@@ -55,30 +55,45 @@ directly.
 
 **Tasks**
 
-- [ ] Design a module boundary you can justify, and implement it (e.g. data loading, shared state,
+- [x] Design a module boundary you can justify, and implement it (e.g. data loading, shared state,
       one module per view's rendering, `localStorage` helpers, small formatting/lookup utilities,
       and an entry-point module that wires up navigation and event listeners on startup).
-- [ ] Update `index.html` to load your entry point with `<script type="module" src="...">` instead
+- [x] Update `index.html` to load your entry point with `<script type="module" src="...">` instead
       of the current plain `<script src="app.js">`.
-- [ ] Do this as a **pure refactor first**: the app must behave identically before and after (bugs
+- [x] Do this as a **pure refactor first**: the app must behave identically before and after (bugs
       and all — you are not fixing anything yet in this demo). Re-run the app after every few
       changes and confirm nothing new broke.
-- [ ] Decide deliberately, function by function, what needs to be exported and what can stay
+- [x] Decide deliberately, function by function, what needs to be exported and what can stay
       private to its module. Not everything needs to be public.
 
 **Questions** (depend on the tasks above)
 
-- [ ] What is the difference between a classic `<script>` and a `<script type="module">`? Name at
+- [x] What is the difference between a classic `<script>` and a `<script type="module">`? Name at
       least two behavioral differences that are relevant to this app.
-- [ ] Before your refactor, `allEvidence` was a global `var`, readable and writable from anywhere in
+
+      The difference between a classic script and a module is usually the scope and closure. 
+  
+      A classic `<script>` runs its top-level code directly in the global scope, so every top-level `function` and `var` in the old `app.js` automatically became a property of `window`. A `<script type="module">` doesn't do that, every file gets its own module scope and nothing leaks to `window` on its own, even though it still looks like top-level code. I actually ran into this for real, `index.html` calls things like `onclick="navigateTo('dashboard')"` straight from an HTML attribute, and inline handlers like that look the function up on the global object the moment they fire. After switching to modules that lookup would've failed with "navigateTo is not defined", so I had to explicitly do `window.navigateTo = navigateTo;` (and five others) in `js/main.js` just to keep the markup working. Second difference is that module scripts are deferred and run in document order once parsing is done, and they're strict mode automatically, no need to opt in.
+
+- [x] Before your refactor, `allEvidence` was a global `var`, readable and writable from anywhere in
       `app.js`. After splitting into modules, what has to happen for a different module to read or
       change that value? What error do you get if you forget, and why is that error actually
       useful?
-- [ ] What's the difference between a named export and a default export? Point to one place in your
+
+      Whichever module needs the global `allEvidence` now needs to import the module that actually holds the variable/state.
+
+      The module that wants to use `allEvidence` now has to `import` it from wherever it's defined. In my split that's `import { state } from "./state.js"`, and then you read/write it as `state.allEvidence`. One thing that tripped me up while planning this: an imported binding is read-only in the module that imports it, you can change its properties but you can't reassign the name itself from outside the module that declared it. That's exactly why I didn't export `allEvidence` on its own, I wrapped it in one `state` object instead so every module can do `state.allEvidence = data;` without trying to reassign an import. Forget the import entirely and you get `Uncaught ReferenceError: allEvidence is not defined`, or `does not provide an export named ...` if you typo the name.
+
+- [x] What's the difference between a named export and a default export? Point to one place in your
       refactor where you chose one over the other, and explain why.
-- [ ] Why won't `type="module"` scripts run at all if you open `index.html` directly from disk
+
+      A module can have as many named exports as it wants and you have to import them by their exact name (or rename with `as`), a default export is just one per module and the importer can call it whatever they like. I ended up using only named exports everywhere in this refactor because almost every module exports more than one related thing, `js/utils.js` alone has seven small helper functions, and a view module like `js/views/evidence.js` exports several (`renderEvidenceList`, `openEvidenceDetail`, `closeEvidenceDetail`, `handleSortChange`, ...). Because the project is so massive and the app.js was bloated, none of them refactoring files that i made inside /js has one obvious "main" export that deserves to be the default.
+
+- [x] Why won't `type="module"` scripts run at all if you open `index.html` directly from disk
       (`file://...`) instead of through a local HTTP server? (You already need a server for
       `fetch()` — is this the same reason, a different one, or both?)
+
+  Related but not quite the same reason. `fetch()` against `file://` fails because the Fetch spec just doesn't define how to "fetch" a local file that way, browsers treat `file://` as an opaque origin with no real CORS story. Module scripts hit a similar wall but one level earlier: loading a module graph goes through the same origin checks that `fetch()` uses, and under `file://` there's no real origin to check against, so the browser refuses to load the module at all (you'd see something like "Cross origin requests are only supported for HTTP" in the console) before any of my own code, including my fetch calls, gets a chance to run. So same underlying cause, the browser's origin rules not being satisfied by `file://`, but it blocks two different things: one stops the module script from loading in the first place, the other stops a request my code makes once it's already running.
 
 ---
 
