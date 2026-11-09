@@ -31,7 +31,7 @@ your fix works.
 | # | Demo | Ready? |
 |---|---|---|
 | 1 | Split the app into JS modules | ☑ |
-| 2 | Bug hunt — mutation/reference bug | ☐ |
+| 2 | Bug hunt — mutation/reference bug | ☑ |
 | 3 | Bug hunt — an asynchronous/Promise-handling bug | ☐ |
 | 4 | Bug hunt — silent (console-only) bug | ☐ |
 | 5 | Bug hunt — full walkthrough & reflection | ☐ |
@@ -99,8 +99,7 @@ directly.
 
 ## Demo 2 — Bug hunt: a mutation/reference bug
 
-The app has several independent defects hidden across its views. Find them the way you would on a real project: by using the app thoroughly,
-reading error output, debugging and reasoning about the code once you have a reproducible symptom.
+The app has several independent defects hidden across its views. Find them the way you would on a real project: by using the app thoroughly, reading error output, debugging and reasoning about the code once you have a reproducible symptom.
 
 For this demo specifically, find and fix a bug where an array or object gets changed in a place
 that surprises you (something is mutated that shouldn't have been, or two things that were supposed
@@ -108,16 +107,29 @@ to be independent turn out to be linked).
 
 **Tasks**
 
-- [ ] Reproduce the bug reliably and write down the exact steps.
-- [ ] Form a hypothesis for the root cause and confirm it (not just patch the symptom).
-- [ ] Fix it, and verify the fix doesn't break anything else nearby.
+- [x] Reproduce the bug reliably and write down the exact steps.
+
+  Steps: load the app, go to the Evidence view, change the "Sort evidence" dropdown to anything other than "Newest first" (e.g. Title A-Z), then go to the Workspace view and look at the "Selected supporting evidence" list in the Hypothesis Draft form. Instead of showing E01, E02, E03... in order like it normally does, it shows the evidence in whatever order you just sorted the *other* view by. The Workspace's note list and bookmarked list get scrambled the same way. I checked it from the console too (`state.filteredEvidence === state.allEvidence` → `true` before the fix), so it's not just a visual coincidence.
+
+- [x] Form a hypothesis for the root cause and confirm it (not just patch the symptom).
+
+  Since I refactored before, in `js/dataLoader.js`, `loadEvidenceData()` did `state.filteredEvidence = state.allEvidence;`. that doesn't copy the array, it just points `filteredEvidence` at the exact same array object as `allEvidence`. `handleSortChange()` in `evidence.js` then calls `.sort()` directly on `state.filteredEvidence`, and `Array.prototype.sort()` sorts in place, so it also reorders `allEvidence` since they're the same array underneath. Confirmed it with a quick console check: before the fix `state.filteredEvidence === state.allEvidence` was `true`, and `state.allEvidence.map(e => e.id)` came back scrambled right after sorting the evidence view. So it wasn't a rendering glitch, the master data array itself was getting reordered.
+
+- [x] Fix it, and verify the fix doesn't break anything else nearby.
+
+  Changed that one line to `state.filteredEvidence = state.allEvidence.slice();`, which makes a shallow copy of the array instead of reusing the same one. Sorting `filteredEvidence` now only reorders its own array, `allEvidence` stays in the original E01...E18 order no matter what you sort by. Re-ran the same repro after the fix and `allEvidence` stayed intact, the Workspace dropdown kept its correct order, and the sort itself still worked fine on `filteredEvidence` (checked the titles came back alphabetically where expected).
 
 **Questions** (depend on the task above)
 
-- [ ] Explain — in your own words — the difference between a *reference* and a *copy* in
+- [x] Explain — in your own words — the difference between a *reference* and a *copy* in
       JavaScript, and how that distinction explains what you observed.
-- [ ] Walk through the exact user actions and system state that trigger the bug. Could you have
+
+  Arrays and objects in JS are assigned by reference, so `var b = a;` doesn't create a second array, `b` and `a` just both point at the exact same thing in memory. Only primitives (numbers, strings, booleans) get copied by value. `state.allEvidence.slice()` creates an actual new array with its own memory, copies of the references to the same evidence objects but a brand new outer array, so sorting it doesn't touch the original array's order anymore. That's exactly the distinction that explains the bug, `filteredEvidence = allEvidence` looked like "give me a filtered view of the data" but was really "give me a second name for the same array", so any in-place operation on one showed up on the other too.
+
+- [x] Walk through the exact user actions and system state that trigger the bug. Could you have
       found it by reading the code top-to-bottom without running it? Why or why not?
+
+  Data loads → `loadEvidenceData()` sets `filteredEvidence = allEvidence` (aliased at this point). User opens the Evidence view and changes the sort dropdown → `handleSortChange()` runs `state.filteredEvidence.sort(...)`, which reorders the shared array in place. User then opens Workspace, which always re-renders from `state.allEvidence` directly → the hypothesis dropdown, notes list and bookmarks list all show the now-reordered data. I think I could've spotted it by reading the code, the assignment on its own looks a bit suspicious since `filteredEvidence` is supposed to be a separate, derived thing, but it's the kind of thing that's easy to skim past since the line by itself isn't wrong, it only becomes a bug once you connect it to the `.sort()` call in a completely different function in a different file. Running it and actually seeing unrelated views change was what made it obvious.
 
 ---
 

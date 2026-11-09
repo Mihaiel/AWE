@@ -57,7 +57,9 @@ function loadEvidenceData() {
     .then(function (data) {
       state.allEvidence = data;
       applyStoredBookmarkFlags();
-      state.filteredEvidence = state.allEvidence;
+      // .slice() on purpose - filteredEvidence has to be its own array, not
+      // the same one as allEvidence. See CHANGES.MD / Demo 2 for why.
+      state.filteredEvidence = state.allEvidence.slice();
       renderDashboard();
       populateAllDropdowns();
       if (state.currentPage === "evidence") renderEvidenceList();
