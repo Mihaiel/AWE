@@ -3,7 +3,7 @@
 // ---------------------------------------------------------------------
 import { state } from "./state.js";
 import { renderDashboard } from "./views/dashboard.js";
-import { renderEvidenceList, populateEvidenceDropdowns, applyStoredBookmarkFlags } from "./views/evidence.js";
+import { renderEvidenceList, populateEvidenceDropdowns, applyStoredBookmarkFlags, markEvidenceDataLoaded } from "./views/evidence.js";
 import { renderTimeline, populateTimelineDropdowns } from "./views/timeline.js";
 import { populateHypothesisDropdowns } from "./views/workspace.js";
 
@@ -60,6 +60,9 @@ function loadEvidenceData() {
       // .slice() on purpose - filteredEvidence has to be its own array, not
       // the same one as allEvidence. See CHANGES.MD / Demo 2 for why.
       state.filteredEvidence = state.allEvidence.slice();
+      // The fetch has now actually resolved, so the evidence view's own
+      // loading flag needs to catch up with reality. See CHANGES.MD / Demo 3.
+      markEvidenceDataLoaded();
       renderDashboard();
       populateAllDropdowns();
       if (state.currentPage === "evidence") renderEvidenceList();

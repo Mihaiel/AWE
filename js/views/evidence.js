@@ -17,10 +17,15 @@ import { saveBookmarksToStorage, saveNoteForEvidence, loadNoteForEvidence } from
 // instead of in shared state.
 let selectedEvidence = null;
 
-// NOTE: nothing in the whole codebase ever sets this back to false once
-// the data has loaded, so the spinner never clears and the list never
-// renders. Left as-is on purpose, see CHANGES.MD for a later demo.
+// Flips to false once the evidence fetch actually resolves - see
+// markEvidenceDataLoaded() below. Fixed in Demo 3, see CHANGES.MD.
 let evidenceViewLoading = true;
+
+// Called once from dataLoader.js, right after the evidence.json fetch
+// resolves, so this module's own loading flag matches reality.
+export function markEvidenceDataLoaded() {
+  evidenceViewLoading = false;
+}
 
 // Just here to ignore stale search responses.
 let latestSearchRequestId = 0;

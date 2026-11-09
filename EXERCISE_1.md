@@ -32,7 +32,7 @@ your fix works.
 |---|---|---|
 | 1 | Split the app into JS modules | ☑ |
 | 2 | Bug hunt — mutation/reference bug | ☑ |
-| 3 | Bug hunt — an asynchronous/Promise-handling bug | ☐ |
+| 3 | Bug hunt — an asynchronous/Promise-handling bug | ☑ |
 | 4 | Bug hunt — silent (console-only) bug | ☐ |
 | 5 | Bug hunt — full walkthrough & reflection | ☐ |
 | 6 | Use the JavaScript debugger | ☐ |
@@ -143,17 +143,27 @@ flaky or timing-sensitive to reproduce. The point is that you can't explain the 
 
 **Tasks**
 
-- [ ] Reproduce the bug reliably and write down the exact steps.
-- [ ] Form a hypothesis for the root cause, expressed in terms of the async operation involved (what
+- [x] Reproduce the bug reliably and write down the exact steps.
+
+  Load the app and go straight to the Evidence view, before or after the data finishes loading doesn't matter. The toolbar (search/filters/sort) shows up fine but the list area underneath just shows a spinner and "Loading evidence…" forever, the cards never appear. I checked from the console that `state.allEvidence` had all 18 items loaded while this was happening, so the spinner isn't waiting on anything real, it's stuck.
+
+- [x] Form a hypothesis for the root cause, expressed in terms of the async operation involved (what
       was supposed to happen once it resolved, and what actually happened instead), and confirm it.
-- [ ] Fix it, and verify the fix actually addresses the async handling rather than papering over the
+
+  The async operation is the `fetch("data/evidence.json")` in `loadEvidenceData()`. Once that promise resolves, its `.then()` is supposed to both fill `state.allEvidence` *and* tell the evidence view it's done loading, but it only did the first part. `evidenceViewLoading` in `evidence.js` starts `true` and nothing anywhere ever flips it back to `false`, so `renderEvidenceList()` keeps bailing out into the loading branch no matter how long you wait or how many times the data actually loads. Confirmed by checking `state.allEvidence.length` in the console right after navigating to Evidence, it was already `18`, full data, spinner still stuck.
+
+- [x] Fix it, and verify the fix actually addresses the async handling rather than papering over the
       symptom (e.g. don't just add a delay or a retry if the real issue is a missing state update).
+
+  Added a small exported function in `evidence.js`, `markEvidenceDataLoaded()`, that just sets `evidenceViewLoading = false`, and called it from inside the evidence fetch's success `.then()` in `dataLoader.js`, right after `state.allEvidence` gets set. That's it, no delay, no retry, no polling, just making sure the state the view checks actually gets updated once the thing it's waiting on is done. Reloaded and the evidence cards render immediately once the fetch resolves, and bookmarking, search, filtering, sorting and opening a detail view all work now that the list actually shows up.
 
 **Questions** (depend on the task above)
 
-- [ ] Explain the async operation this bug revolves around: what does it fetch/return, and at what
+- [x] Explain the async operation this bug revolves around: what does it fetch/return, and at what
       point in its lifecycle (before it starts, while pending, on success, on failure) does the bug
       actually happen? How did you confirm that, rather than just guessing?
+
+  It's the `fetch("data/evidence.json")` call in `loadEvidenceData()`, which returns the array of 18 evidence items used basically everywhere in the app. The bug sits specifically in the "on success" part of its lifecycle, the fetch starts fine, stays pending for a moment, and resolves successfully with real data every time, there's no failure involved at all. The problem is that the success callback updates `state.allEvidence` but never updates `evidenceViewLoading`, so from the evidence view's perspective the load never "finished" even though it did. I confirmed this wasn't a guess by checking `state.allEvidence.length` in the console while the spinner was showing, it was already `18`, so the data had clearly arrived, the view's own loading flag was just never told.
 
 ---
 
