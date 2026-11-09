@@ -71,4 +71,8 @@ For the live I would be presenting Demo 2's mutation bug since it can be visuali
 
 No code changes here, this one's just Safari's Web Inspector. Switched to branch `01/02` on purpose since it still has the Demo 1 nav-button bug unfixed, good target for this. Set a breakpoint inside the nav-button click callback in `setupEventListeners()` (`js/main.js`), stepped through it with step over/into/out, and watched the Call Stack panel confirm the pause came from the button's own click listener. Hovering `i` next to `navButtons.length` at the paused moment made the closure bug obvious in a way a single `console.log` wouldn't have, without also separately printing the length and reasoning about timing after the fact.
 
-Didn't get to the conditional breakpoint/logpoint or the live Scope-panel variable edit yet, left those two tasks and their matching question unticked rather than claim them.
+Also did the conditional breakpoint (on `populateHypothesisDropdowns()`'s evidence loop in `workspace.js`, conditioned on a specific evidence ID) and a live Scope-panel edit (changed `i` while paused in the nav callback and watched `targetView` resolve correctly instead of crashing) to round out the remaining two tasks.
+
+### Demo 7 — DevTools tour
+
+Also no code changes, just Console/Network/Application/Elements. Corrupting `remotion_notes` in Storage and reloading reproduces the exact Demo 5 bug, now just a console warning instead of the app hanging. Checked a 404 scenario by reasoning through the code rather than actually serving one: `fetch()` itself wouldn't reject on a 404, but `loadEvidenceData()` never checks `res.ok`, so a non-JSON error body would make `res.json()` reject instead, which the existing `.catch()` already handles.

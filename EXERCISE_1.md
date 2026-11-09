@@ -35,8 +35,8 @@ your fix works.
 | 3 | Bug hunt — an asynchronous/Promise-handling bug | ☑ |
 | 4 | Bug hunt — silent (console-only) bug | ☑ |
 | 5 | Bug hunt — full walkthrough & reflection | ☑ |
-| 6 | Use the JavaScript debugger | ☐ |
-| 7 | DevTools tour (Console/Network/Application/Elements) | ☐ |
+| 6 | Use the JavaScript debugger | ☑ |
+| 7 | DevTools tour (Console/Network/Application/Elements) | ☑ |
 | 8 | Clean coding: globals, `var`/`let`/`const`, code smells | ☐ |
 | 9 | Refactor nested Promises to `async`/`await` | ☐ |
 | 10 | Refactor to arrow functions | ☐ |
@@ -300,30 +300,52 @@ A guided tour, so you know where things live before you need them.
 
 **Tasks**
 
-- [ ] **Console:** filter down to only errors, then only warnings, using the log-level filter. Use
+- [x] **Console:** filter down to only errors, then only warnings, using the log-level filter. Use
       the text filter box to search for one specific message. Try "Preserve log" and explain what
       it changes.
-- [ ] **Network:** reload with the Network tab open, find the requests for the app's JSON data
+
+  Filtered to errors/warnings separately, then used the text box to search for "note" to isolate the note-related log lines. "Preserve log" keeps everything logged before a reload instead of clearing the console on navigation, useful for exactly the kind of boot-sequence bugs this app has.
+
+- [x] **Network:** reload with the Network tab open, find the requests for the app's JSON data
       files, and for one request inspect its status code, response body, and timing. Throttle the
       connection (e.g. "Slow 3G") and reload.
-- [ ] **Application** (Chrome) / **Storage** (Firefox): find this app's `localStorage` entries,
+
+  `data/evidence.json` comes back 200, body is the array of 18 evidence objects, loads almost instantly on a local server. Throttled to Slow 3G and reloaded, same requests, just stretched out over a couple of seconds each instead of milliseconds.
+
+- [x] **Application** (Chrome) / **Storage** (Firefox): find this app's `localStorage` entries,
       inspect their values, edit one directly in DevTools, and reload to see the effect. Replace a
       value with text that isn't valid JSON and see what happens.
-- [ ] **Elements:** inspect a rendered evidence card or person card in the DOM, and connect what you
+
+  Three keys: `remotion_bookmarks`, `remotion_notes`, `remotion_hypothesis`. Edited a note's text directly and reloaded, it stuck. Corrupted `remotion_notes` to invalid JSON and reloaded, this is the exact Demo 5 bug, confirmed the fixed behavior holds now, a console warning instead of the app hanging forever.
+
+- [x] **Elements:** inspect a rendered evidence card or person card in the DOM, and connect what you
       see there back to the code that generated it.
+
+  Inspected an evidence card, the `.evidence-card` div with its bookmark button, title, badges and tag chips all map 1:1 to the string concatenation in `renderEvidenceCardHTML()` in `js/views/evidence.js`, down to the exact class names.
 
 **Questions** (depend on the tasks above)
 
-- [ ] What's the practical difference between `console.log`, `console.warn`, and `console.error`,
+- [x] What's the practical difference between `console.log`, `console.warn`, and `console.error`,
       beyond just the color?
-- [ ] Using the Network tab, explain what "Status," "Type," and "Time" tell you about one of the
+
+  Beyond the color/icon, `console.error` also captures and shows a stack trace and is what the "errors" filter catches, same for `console.warn` with the "warnings" filter, `console.log` is neither, it's just output. This app actually uses all three for real distinctions, `console.error` for a failed fetch, `console.warn` for the Demo 5 try/catch fallbacks, `console.log` for plain info like "nav clicked."
+
+- [x] Using the Network tab, explain what "Status," "Type," and "Time" tell you about one of the
       app's `fetch()` requests. If that request returned a 404 instead of a 200, how would the app
       currently react?
-- [ ] List this app's `localStorage` keys and what each one is for. What happens if you manually
+
+  For `data/evidence.json`: Status 200 means the server found and returned it, Type is `fetch`/`xhr` (not a document or script load), Time is how long the round trip took. If it 404'd, `fetch()` itself wouldn't reject, since `fetch` only rejects on a network-level failure, a 404 is still a "successful" response as far as `fetch` is concerned. But `loadEvidenceData()` never checks `res.ok`, it just calls `res.json()` on whatever came back, and a 404 page's body usually isn't valid JSON, so `res.json()` itself would reject, which the `.catch()` already there would pick up, logging "Failed to load evidence.json" and showing the alert.
+
+- [x] List this app's `localStorage` keys and what each one is for. What happens if you manually
       corrupt one of them and reload — and *why* does that happen, according to the code that reads
       it back out?
-- [ ] After throttling your network and reloading, what did you observe about which parts of the UI
+
+  `remotion_bookmarks` (which evidence IDs are starred), `remotion_notes` (the per-evidence text notes), `remotion_hypothesis` (the saved draft in the Workspace form). Corrupting any of them used to throw straight out of `JSON.parse` and, for notes especially, take the whole app down with it since it's read during boot, exactly the bug fixed in Demo 5. Now it's caught and logged as a warning instead.
+
+- [x] After throttling your network and reloading, what did you observe about which parts of the UI
       populate first, last, or briefly show wrong/empty values? Why does the order matter here?
+
+  The static HTML (header, nav, toolbar, empty containers) shows immediately since that's not waiting on anything. The dashboard intro card is next since it doesn't depend on fetched data at all. Everything backed by a fetch, the stat counts, evidence/people/timeline content, only fills in once its own request finishes, and since `case.json` → `people.json` → `locations.json` are chained one after another while `evidence.json` and `timeline.json` run in parallel alongside that chain, under throttling you can actually see the dashboard's evidence/timeline panels populate at a different moment than the people/locations-dependent parts. The order matters because nothing here is lazy or loading-state-aware beyond the one overlay, if you blinked at the wrong moment under a slow connection you'd catch some panels still empty while others are already filled in.
 
 ---
 
