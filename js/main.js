@@ -28,17 +28,19 @@ window.handleSortChange = handleSortChange;
 window.saveHypothesis = saveHypothesis;
 window.closeEvidenceDetail = closeEvidenceDetail;
 window.saveCurrentNote = saveCurrentNote;
-window.renderEvidenceList = renderEvidenceList; // needed by the setAttribute("onchange", ...) call below
+// renderEvidenceList used to also need exposing here, for a redundant
+// setAttribute("onchange", ...) call removed in Demo 8 - nothing reads
+// it off window anymore, so it stays module-private now.
 
 function setupEventListeners() {
   window.addEventListener("hashchange", handleHashChange);
 
-  var navButtons = document.querySelectorAll(".nav-btn");
+  const navButtons = document.querySelectorAll(".nav-btn");
   // let, not var: each click handler needs its own i, otherwise they
   // all share the one i left over after the loop ends. See Demo 5.
   for (let i = 0; i < navButtons.length; i++) {
     navButtons[i].addEventListener("click", function () {
-      var targetView = navButtons[i].getAttribute("data-view");
+      const targetView = navButtons[i].getAttribute("data-view");
       console.log("nav clicked:", targetView);
     });
   }
@@ -49,8 +51,11 @@ function setupEventListeners() {
   document.getElementById("filterPerson").addEventListener("change", renderEvidenceList);
   document.getElementById("filterLocation").addEventListener("change", renderEvidenceList);
 
+  // Used to also get a second, redundant listener via
+  // setAttribute("onchange", "renderEvidenceList()") here - that ran
+  // renderEvidenceList() twice per change for no reason. Code smell
+  // fixed in Demo 8, see CHANGES.MD.
   document.getElementById("filterStatus").addEventListener("change", renderEvidenceList);
-  document.getElementById("filterStatus").setAttribute("onchange", "renderEvidenceList()");
 
   document.getElementById("filterRelevance").addEventListener("change", renderEvidenceList);
 

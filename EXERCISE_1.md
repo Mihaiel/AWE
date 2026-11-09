@@ -37,7 +37,7 @@ your fix works.
 | 5 | Bug hunt — full walkthrough & reflection | ☑ |
 | 6 | Use the JavaScript debugger | ☑ |
 | 7 | DevTools tour (Console/Network/Application/Elements) | ☑ |
-| 8 | Clean coding: globals, `var`/`let`/`const`, code smells | ☐ |
+| 8 | Clean coding: globals, `var`/`let`/`const`, code smells | ☑ |
 | 9 | Refactor nested Promises to `async`/`await` | ☐ |
 | 10 | Refactor to arrow functions | ☐ |
 
@@ -353,27 +353,47 @@ A guided tour, so you know where things live before you need them.
 
 **Tasks**
 
-- [ ] List every top-level `var` at the top of the original `app.js`. For at least three of them,
+- [x] List every top-level `var` at the top of the original `app.js`. For at least three of them,
       explain what could go wrong if two unrelated pieces of code both tried to use a variable with
       that name — and how your module split from Demo 1 already prevents (or doesn't yet prevent)
       that.
-- [ ] Go through the codebase and replace `var` with `const` or `let` everywhere it's declared,
+
+  The original "GLOBAL STATE" block at the top of `app.js` had 17 of them: `allEvidence`, `filteredEvidence`, `selectedEvidence`, `bookmarks`, `currentPage`, `allPeople`, `allLocations`, `allTimeline`, `caseData`, `currentPeopleTab`, `loadingStepsRemaining`, `evidenceViewLoading`, `viewRendered`, `notesStore`, `modalCloseListenerCount`, `STORAGE_KEY_BOOKMARKS`, `STORAGE_KEY_NOTES`, `STORAGE_KEY_HYPOTHESIS` (plus `latestSearchRequestId`, declared a bit further down, also global). Every single one became a property on `window` the moment `app.js` loaded, in a classic script.
+
+  Take `allEvidence`, `currentPage`, and `bookmarks`. If any other script on the page, a browser extension, a third-party widget, even just a second `<script>` tag someone added later, happened to declare its own `var allEvidence` or just do `allEvidence = something`, it would silently reassign the exact same global, no warning, no error, just quietly broken data from that point on. Same for `currentPage`, a totally unrelated analytics script tracking "current page" in its own sense could stomp on the app's routing state without either side knowing the other exists. My module split prevents this completely for these three, and for everything else in `state.js`, since `allEvidence` isn't a bare identifier anymore, it's `state.allEvidence`, a property reachable only through the `state` object that a module has to explicitly `import`. Nothing outside this codebase can collide with it by accident, there's no bare global name to typo into existence. It doesn't fully prevent collisions *within* the app though, two of my own modules could still both do `state.allEvidence = ...` and silently overwrite each other's work, module boundaries protect against the outside world, not against two of your own files disagreeing about who owns a piece of shared state.
+
+- [x] Go through the codebase and replace `var` with `const` or `let` everywhere it's declared,
       deciding `const` vs. `let` deliberately for each one.
-- [ ] Identify at least two more "code smells" anywhere in the app, beyond the globals above. Fix
+
+  Went through all 11 files, 165 `var` declarations total, zero left afterward. Default was `const`, used `let` only where a binding is genuinely reassigned later (loop counters, accumulator strings built with `+=`, a handful of real cases like `events` in `timeline.js`'s `renderTimeline()` which gets reassigned after sorting, or `modal`/`draft` in two places that are declared once and assigned conditionally afterward rather than at declaration).
+
+- [x] Identify at least two more "code smells" anywhere in the app, beyond the globals above. Fix
       them, and explain why they were bad and how your fix addresses that.
+
+  **Smell 1 — `filterStatus` had two listeners doing the same thing.** `setupEventListeners()` in `main.js` called `addEventListener("change", renderEvidenceList)` on it, then immediately also did `setAttribute("onchange", "renderEvidenceList()")`, which attaches a *second*, completely redundant listener. Every status change rendered the list twice for no reason, and that inline-string listener was also the whole reason `renderEvidenceList` had to be exposed on `window` at all. Removed the `setAttribute` line and, since nothing references `window.renderEvidenceList` anymore, removed that exposure too.
+
+  **Smell 2 — the same `<option value="...">label</option>` string got hand-built eight separate times.** Across `populateEvidenceDropdowns()` in `evidence.js`, `populateTimelineDropdowns()` in `timeline.js`, and `populateHypothesisDropdowns()` in `workspace.js`, the exact same little bit of string concatenation got copy-pasted for every dropdown. If that markup ever needed to change, you'd have to remember to find and fix all eight copies. Extracted one `optionHTML(value, label)` helper into `utils.js` and pointed all eight call sites at it. The generated HTML is byte-for-byte identical, checked with `.innerHTML` before and after.
 
 **Questions** (depend on the tasks above)
 
-- [ ] What is the difference between `var`, `let`, and `const` in terms of scope and reassignment?
+- [x] What is the difference between `var`, `let`, and `const` in terms of scope and reassignment?
       Give a concrete example — from this codebase or a hypothetical grounded in a pattern you saw
       — of a bug that `var`'s scoping rules make *possible* and `let` would prevent.
-- [ ] What is an "accidental global," and how does non-strict-mode JavaScript allow it to happen by
+
+  `var` is function-scoped (or module/global-scoped at the top level) and hoisted, so it exists and is reassignable across the entire function regardless of which block it was declared in. `let` and `const` are block-scoped, and each iteration of a loop using `let` in its header gets its own fresh binding. `const` adds on top of `let`'s scoping that the binding itself can never be reassigned (the value it points to can still be mutated, pushing to a `const` array is fine). The concrete example is one I'd already run into and fixed back in Demo 5: the nav-button click listeners in `main.js` were set up in a `for (var i = ...)` loop, and every closure captured the *same* `i`, so by the time anyone actually clicked a button, `i` had already reached `navButtons.length` and every handler read `undefined`. Switching that one loop to `let i` gave every iteration, and therefore every closure, its own separate `i`, which is exactly what fixed it.
+
+- [x] What is an "accidental global," and how does non-strict-mode JavaScript allow it to happen by
       simply forgetting a keyword? Now that your code runs as ES modules (which are always strict
       mode), what happens instead if you make that same mistake?
-- [ ] "The code technically works" and "the code is clean" are not the same bar. Give one concrete
+
+  An accidental global is what happens when you write `x = 5;` instead of `var x = 5;` (or `let`/`const`) and forget the keyword entirely. In non-strict-mode classic scripts, assigning to an identifier that was never declared anywhere doesn't throw, it just silently creates a new property on the global object (`window.x = 5`) and carries on, which is exactly the kind of invisible collision risk from the first task. ES modules are always strict mode, no opt-in needed, and under strict mode that same typo (`x = 5;` with no declaration in scope) throws `Uncaught ReferenceError: x is not defined` immediately instead of quietly leaking a new global. That's strictly better for catching the mistake, loudly, at the exact point it happens, instead of some other piece of code reading a stray `undefined` global later and nobody knowing why.
+
+- [x] "The code technically works" and "the code is clean" are not the same bar. Give one concrete
       example from this app of something that worked correctly but was still worth refactoring —
       and explain what real cost the messy version has (bug risk, onboarding time, review
       difficulty...).
+
+  The dropdown-option duplication from Smell 2 above is a clean example, every one of those eight hand-built option strings worked, correctly, the whole time. Nothing about it was ever broken. But it's still worth fixing because the real cost isn't correctness, it's everything around correctness: reading any one of those functions means mentally parsing near-identical string concatenation eight separate times to confirm they're really doing the same thing (and they weren't all identical, one had an extra `+ " - " + name` another didn't, which cost a moment of "wait, is this one different on purpose?"). If the markup ever needed a real change, say escaping values, or adding a `data-` attribute, someone would have to find and update all eight copies by hand, and missing even one wouldn't throw an error, it'd just quietly render slightly different markup in one dropdown. That's bug risk and review difficulty that the working code was already carrying, it just wasn't visible until you actually went looking for it.
 
 ---
 
