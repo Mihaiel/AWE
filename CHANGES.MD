@@ -50,3 +50,9 @@ Root cause in `js/views/evidence.js`: `evidenceViewLoading` starts `true` and `r
 Fixed by adding `markEvidenceDataLoaded()` in `evidence.js` (just sets `evidenceViewLoading = false`) and calling it from inside `loadEvidenceData()`'s success `.then()`, right after `state.allEvidence` gets set and before the conditional `renderEvidenceList()` call. Only did this in the success path, the `.catch()` branch still wouldn't clear the spinner on a failed fetch either, but that's not reachable in this app since the JSON files always load, so I left that alone rather than fixing something that was never actually a problem here.
 
 Tested after the fix: evidence cards render immediately once data loads, no more stuck spinner, and bookmarking/search/filter/sort/opening a detail view all work on the list now that it actually renders (previously untestable since the list never showed anything). Nothing else changed.
+
+### Demo 4 — Bug hunt: silent bug
+
+Found this one just reading the console on a normal page load, no UI symptom at all: `initApp()` in `js/main.js` logs `"First note preview:"` followed by whatever `loadNoteAsync("E01")` returns. That function returns a Promise, but the code never awaited or chained it, so `console.log` just printed the Promise object itself. To make it obvious this wasn't just an empty-string edge case, I seeded a note for E01 in localStorage first, reloaded, and the console showed `{[[PromiseState]]: fulfilled, [[PromiseResult]]: "Checked the profile mismatch..."}` instead of the plain note text.
+
+Fixed by chaining a `.then()` onto `loadNoteAsync("E01")` instead of using its return value directly, kept it in `.then()` style rather than jumping to `async`/`await` since that conversion is specifically Demo 9's job. After the fix the console correctly logs just the note string, confirmed with the same seeded-note setup as before and after.

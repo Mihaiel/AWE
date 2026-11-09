@@ -71,8 +71,12 @@ function initApp() {
 
   loadAllData().then(function () {
     handleHashChange();
-    var firstNote = loadNoteAsync("E01");
-    console.log("First note preview:", firstNote);
+    // loadNoteAsync() returns a Promise - it has to be awaited/chained,
+    // otherwise this logs the Promise object instead of the note text.
+    // See CHANGES.MD / Demo 4.
+    loadNoteAsync("E01").then(function (firstNote) {
+      console.log("First note preview:", firstNote);
+    });
   });
 }
 

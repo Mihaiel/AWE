@@ -33,7 +33,7 @@ your fix works.
 | 1 | Split the app into JS modules | ☑ |
 | 2 | Bug hunt — mutation/reference bug | ☑ |
 | 3 | Bug hunt — an asynchronous/Promise-handling bug | ☑ |
-| 4 | Bug hunt — silent (console-only) bug | ☐ |
+| 4 | Bug hunt — silent (console-only) bug | ☑ |
 | 5 | Bug hunt — full walkthrough & reflection | ☐ |
 | 6 | Use the JavaScript debugger | ☐ |
 | 7 | DevTools tour (Console/Network/Application/Elements) | ☐ |
@@ -175,14 +175,24 @@ testing session. Find a bug that produces **no visible change in the UI** — on
 
 **Tasks**
 
-- [ ] Reproduce the bug and capture the exact console output.
-- [ ] Trace it back to the line(s) of code responsible.
-- [ ] Fix it, and confirm the console is clean for that scenario afterward.
+- [x] Reproduce the bug and capture the exact console output.
+
+  Saved a note for evidence E01 first (just set it in localStorage directly: `{"E01": "Checked the profile mismatch, looks like a cache-key scoping issue."}`), then reloaded the app. Nothing visible changes anywhere on the page. But the console logs `First note preview: {[[PromiseState]]: fulfilled, [[PromiseResult]]: "Checked the profile mismatch, looks like a cache-key scoping issue."}` instead of just the note text, that weird `[[PromiseState]]`/`[[PromiseResult]]` object is Chrome's way of showing you an unresolved Promise that got logged directly.
+
+- [x] Trace it back to the line(s) of code responsible.
+
+  `initApp()` in `js/main.js`, the last two lines inside the `loadAllData().then(...)` callback: `var firstNote = loadNoteAsync("E01"); console.log("First note preview:", firstNote);`. `loadNoteAsync` (in `storage.js`) returns `new Promise(resolve => resolve(...))`, so `firstNote` is the Promise itself not the string since nothing ever unwraps it.
+
+- [x] Fix it, and confirm the console is clean for that scenario afterward.
+
+  Changed it to chain a `.then()` onto `loadNoteAsync("E01")` and log the resolved value inside that callback, instead of logging the Promise directly. Kept it as `.then()` rather than switching to `async`/`await`, since that conversion belongs to Demo 9. Reloaded with the same seeded note and the console now logs `First note preview: Checked the profile mismatch, looks like a cache-key scoping issue.`, plain text there is no Promise object.
 
 **Questions** (depend on the task above)
 
-- [ ] How did you notice this bug in the first place, given that nothing looked broken? Why is
+- [x] How did you notice this bug in the first place, given that nothing looked broken? Why is
       "nothing looks broken" not the same as "nothing is broken"?
+
+  I only noticed it because I happened to have the console open while testing something else entirely, Demo 1's refactor, and saw a weird-looking object logged on every page load. Nothing on screen ever referenced this value, it's logged and then just thrown away, so there was no visual symptom to chase, I had to go looking for the line that produced it. That's why "nothing looks broken" isn't the same as "nothing is broken". The UI only shows the parts of the state that get rendered somewhere, a bug in a value that's only ever console.logged (or stored but never read, or computed and discarded) can sit there without a user noticing.
 
 ---
 
