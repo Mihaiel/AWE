@@ -66,6 +66,8 @@ export function renderDashboard() {
   container.innerHTML = html;
 }
 
-function statCardHTML(value, label) {
-  return '<div class="stat-card"><div class="stat-value">' + value + '</div><div class="stat-label">' + label + "</div></div>";
-}
+// Arrow function, Demo 10: a tiny pure helper, no `this`, no `arguments`,
+// never called before this line runs (only from renderDashboard() above,
+// well after the whole module has already loaded) - a good candidate.
+const statCardHTML = (value, label) =>
+  '<div class="stat-card"><div class="stat-value">' + value + '</div><div class="stat-label">' + label + "</div></div>";

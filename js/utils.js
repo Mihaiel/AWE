@@ -52,18 +52,22 @@ export function getRelevanceBadgeClass(relevance) {
   return "badge-unreviewed";
 }
 
-export function certaintyBadgeClass(certainty) {
+// Arrow function, Demo 10: same reasoning as optionHTML below - pure,
+// no `this`/`arguments`, nothing calls it before the module finishes
+// loading. Uses a block body (not a single-expression arrow) since it
+// has several early returns instead of one expression to hand back.
+export const certaintyBadgeClass = (certainty) => {
   if (certainty === "confirmed") return "reviewed";
   if (certainty === "contradictory") return "critical";
   if (certainty === "reported") return "flagged";
   return "unreviewed";
-}
+};
 
 // Code smell fix, Demo 8: this exact "<option value=...>label</option>"
 // string got hand-built the same way in evidence.js, timeline.js and
 // workspace.js (8 times total) instead of going through one shared
 // helper - any future change to the markup would've meant finding and
 // fixing all 8 copies. Output is byte-for-byte identical to before.
-export function optionHTML(value, label) {
-  return '<option value="' + value + '">' + label + "</option>";
-}
+// Arrow function, Demo 10: single expression, so this one gets an
+// implicit return instead of a block body + explicit `return`.
+export const optionHTML = (value, label) => '<option value="' + value + '">' + label + "</option>";

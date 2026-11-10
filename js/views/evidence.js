@@ -143,6 +143,17 @@ function renderEvidenceCardHTML(ev) {
   return html;
 }
 
+// Deliberately NOT an arrow function, Demo 10: this is passed straight
+// to addEventListener by reference (container.addEventListener("click",
+// handleEvidenceListClick) above), the idiomatic way to write a DOM
+// handler like this uses `this`/`event.currentTarget` for "the element
+// the listener is attached to" (this one uses event.target instead, but
+// that's a choice, not a requirement). Converting it to an arrow would
+// permanently rule out ever using `this` here, since an arrow's `this`
+// is fixed to whatever it was when the function was defined (the module
+// scope, i.e. undefined), not the element it ends up attached to. A
+// plain function keeps that door open; see CHANGES.MD for the longer
+// version of this.
 function handleEvidenceListClick(event) {
   const target = event.target;
 
@@ -318,12 +329,14 @@ function renderEvidenceDetail(ev) {
 
   section.innerHTML = html;
 
-  document.getElementById("detailStatusSelect").addEventListener("change", function (e) {
+  // Arrow functions, Demo 10: neither one uses `this`, both just close
+  // over `ev` the same way a function expression would have.
+  document.getElementById("detailStatusSelect").addEventListener("change", (e) => {
     ev.status = e.target.value; // direct mutation of the loaded evidence object
     renderEvidenceDetail(ev);
     if (state.viewRendered.evidence) renderEvidenceList();
   });
-  document.getElementById("detailRelevanceSelect").addEventListener("change", function (e) {
+  document.getElementById("detailRelevanceSelect").addEventListener("change", (e) => {
     ev.relevance = e.target.value;
     renderEvidenceDetail(ev);
     if (state.viewRendered.evidence) renderEvidenceList();

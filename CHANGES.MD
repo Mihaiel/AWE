@@ -92,3 +92,11 @@ Fixed two code smells beyond the `var`/global one Demo 1 already mostly handled:
 Also converted `loadTimelineData()`, a better test of the `.then()`/`.catch()`/`.finally()` mapping since it actually has both. Verified the error path for real, not just by reasoning about it: renamed `timeline.json` away to force a 404, reloaded, got the identical `"timeline load error"` log and confirmed the loading overlay still cleared (so `finally` still ran), then put the file back.
 
 For the "break it on purpose" question, removed the `await` on `peopleRes.json()` and watched `state.allPeople` become a literal Promise object, no error anywhere, the People view just rendered completely empty since `state.allPeople.length` is `undefined` on a Promise. Reverted right after confirming it. Didn't get to the debugger-verification task (breakpoint + Call Stack, watching the request order live) yet, left that one and the summary checkbox unticked.
+
+### Demo 10 — Refactor to arrow functions
+
+Converted three standalone functions to arrows: `statCardHTML` and `optionHTML` (both single-expression, implicit return) and `certaintyBadgeClass` (several early returns, so it kept a block body). All three are pure, never used with `new`, never need `arguments`, so nothing about them was risky to convert. Also converted four inline `addEventListener` callbacks (the nav-button click handler and `hypConfidence` input handler in `main.js`, both `change` listeners in `renderEvidenceDetail()` in `evidence.js`), none of them used `this`, so again nothing changed behaviorally.
+
+Deliberately left `handleEvidenceListClick` in `evidence.js` as a plain `function`, since it's attached by reference (`addEventListener("click", handleEvidenceListClick)`, not an inline closure) and converting it would permanently rule out ever using `this`/`event.currentTarget` inside it the idiomatic way, even though it doesn't need that right now.
+
+Checked `arguments` usage across the whole codebase while answering one of the questions, grep turns up zero real uses anywhere, only the word showing up inside comments. Verified everything in the browser after converting: stat cards, dropdown options, timeline certainty badges, the evidence detail status/relevance selects, the hypothesis confidence slider, and bookmark clicking (the one function I didn't touch) all still work exactly as before.

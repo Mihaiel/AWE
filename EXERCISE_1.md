@@ -39,7 +39,7 @@ your fix works.
 | 7 | DevTools tour (Console/Network/Application/Elements) | ☑ |
 | 8 | Clean coding: globals, `var`/`let`/`const`, code smells | ☑ |
 | 9 | Refactor nested Promises to `async`/`await` | ☐ |
-| 10 | Refactor to arrow functions | ☐ |
+| 10 | Refactor to arrow functions | ☑ |
 
 A demo only counts as "Ready" once **every** task and question checkbox inside it (below) is
 ticked — the table above is just a fast overview, tick the boxes inside each demo first.
@@ -464,29 +464,51 @@ A guided tour, so you know where things live before you need them.
 
 **Tasks**
 
-- [ ] Choose at least two functions currently written as `function name(...) { ... }` or
+- [x] Choose at least two functions currently written as `function name(...) { ... }` or
       `function(...) { ... }`, and rewrite them as arrow functions — pick ones that are actually
       good candidates.
-- [ ] Convert at least one anonymous `function(e) { ... }` callback passed to `addEventListener`
+
+  Converted three, deliberately picked for variety: `statCardHTML` in `dashboard.js` (single-expression, so it gets an implicit return, no `{}`/`return` at all), `optionHTML` in `utils.js` (same, single-expression), and `certaintyBadgeClass` in `utils.js` (several early returns, so it needs a block body with explicit `return`s even as an arrow). All three are pure, standalone, never used with `new`, never need `arguments`, and nothing in the codebase ever calls any of them before the module that defines them has fully finished loading, so there was nothing risky about any of these three.
+
+- [x] Convert at least one anonymous `function(e) { ... }` callback passed to `addEventListener`
       into an arrow function.
-- [ ] Identify **one** function you deliberately did *not* convert (or would refuse to, if asked),
+
+  Converted four: the nav-button click callback and the `hypConfidence` input callback in `main.js`, and the two `change` listeners inside `renderEvidenceDetail()` in `evidence.js` (status and relevance). None of them ever used `this`, they all just closed over outer variables the exact same way a `function` expression would have, so converting them changed nothing except the syntax.
+
+- [x] Identify **one** function you deliberately did *not* convert (or would refuse to, if asked),
       and be ready to explain why it would be unsafe or incorrect as an arrow function.
+
+  `handleEvidenceListClick` in `evidence.js`. It's attached by reference, `container.addEventListener("click", handleEvidenceListClick)`, not as an inline closure. It happens to use `event.target` rather than `this` right now, but that's a choice, not something forced on it. The idiomatic way to write a handler like this is often to use `this` (or `event.currentTarget`) to mean "the element the listener is attached to," and converting it to an arrow function would permanently close that door, an arrow's `this` is fixed to whatever it was where the function was *defined* (module scope here, so `undefined`), not to whatever it's attached to later. A `function` declaration keeps that option open for whoever touches this next; an arrow function would quietly take it away.
 
 **Questions** (depend on the tasks above)
 
-- [ ] What is different about how arrow functions handle `this` compared to regular functions? Why
+- [x] What is different about how arrow functions handle `this` compared to regular functions? Why
       does that make arrow functions risky as object methods, but often preferable as callbacks?
-- [ ] Arrow functions can't be used as constructors (no `new`) and have no `arguments` object of
+
+  A regular `function` gets its own `this`, determined by *how it's called* (as a method, `this` is the object before the dot; as a plain call, `this` is `undefined` in strict mode; `addEventListener` sets `this` to the element). An arrow function has no `this` of its own at all, it just reads `this` from whatever scope lexically surrounds it at the point it was *written*, and that never changes no matter how it's later called. That's exactly why arrow functions are risky as object methods, `const obj = { value: 5, getValue: () => this.value }` doesn't work, `this` inside that arrow isn't `obj`, it's whatever `this` was in the scope the object literal itself was written in. But as a callback, that same fixed-`this` behavior is usually exactly what you want, `setTimeout(() => this.doStuff())` inside a method correctly keeps referring to the outer `this` instead of losing it the way a plain `function` callback would.
+
+- [x] Arrow functions can't be used as constructors (no `new`) and have no `arguments` object of
       their own. Did either limitation affect which functions you were able to convert? Which one,
       and how?
-- [ ] Function declarations (`function foo() {}`) are hoisted, so you can call them before they
+
+  Neither limitation affected anything, because this codebase doesn't have a single function used with `new`, and grepping for `arguments` across all of `js/` turns up zero real uses (only the word appearing inside comments). Every function here takes a fixed, known number of parameters and nothing is ever instantiated as an object, so both limitations were simply never in play for any candidate I considered.
+
+- [x] Function declarations (`function foo() {}`) are hoisted, so you can call them before they
       appear later in the file; a `const`/`let` arrow function is not. Did this matter anywhere in
       your refactor? Explain why or why not.
-- [ ] Show a concrete before/after of one function you converted. Is there any behavioral difference
+
+  It didn't matter for any of the three I converted, and I don't think it would matter anywhere else in this app either. Hoisting only matters if something calls a function *before* its declaration is reached while the module is first running top to bottom. Every function in this codebase is only ever called later, either from a different module after the whole module graph has already finished loading, or from inside an event handler/`.then()` callback that fires well after the file it's in has already run completely once. By the time anything actually calls `statCardHTML`, `optionHTML`, or `certaintyBadgeClass`, the `const` they're assigned to has already been evaluated, so moving from a hoisted declaration to a non-hoisted one made no practical difference here.
+
+- [x] Show a concrete before/after of one function you converted. Is there any behavioral difference
       at runtime, or is this purely a readability/style change? Justify your answer.
-- [ ] This codebase mixes function declarations, function expressions, and (after this exercise)
+
+  Before: `function optionHTML(value, label) { return '<option value="' + value + '">' + label + "</option>"; }`. After: `const optionHTML = (value, label) => '<option value="' + value + '">' + label + "</option>";`. No behavioral difference whatsoever, same two parameters, same string built and returned, same call sites (`optionHTML(...)`) work identically either way. Checked the actual generated `<option>` HTML with `.innerHTML` before and after, byte-for-byte identical. This one's purely readability, one line instead of three, with the implicit return replacing the explicit `return` and braces.
+
+- [x] This codebase mixes function declarations, function expressions, and (after this exercise)
       arrow functions, with no single consistent rule. Propose one rule your team could adopt for
       "when do we use which," and justify it.
+
+  My rule: arrow functions by default for anything short, pure, and callback-shaped (the stuff I converted today), regular `function` declarations for anything exported as part of a module's public surface *or* ever passed by reference as an event listener (like `handleEvidenceListClick`), and `function` expressions basically never, in a modern codebase they're mostly just "the thing you'd write as an arrow function now anyway." Justification: arrow functions read better for small pure logic, but keeping named `function` declarations for exported/listener functions preserves hoisting (handy for cross-references within a file), gives better default stack-trace names, and keeps the door open for a future `this`-based rewrite of an event handler without a surprising silent break.
 
 ---
 

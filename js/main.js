@@ -39,7 +39,10 @@ function setupEventListeners() {
   // let, not var: each click handler needs its own i, otherwise they
   // all share the one i left over after the loop ends. See Demo 5.
   for (let i = 0; i < navButtons.length; i++) {
-    navButtons[i].addEventListener("click", function () {
+    // Arrow function, Demo 10: doesn't use `this` (reads navButtons[i]
+    // from the closure instead, same as before), so nothing changes by
+    // converting it.
+    navButtons[i].addEventListener("click", () => {
       const targetView = navButtons[i].getAttribute("data-view");
       console.log("nav clicked:", targetView);
     });
@@ -66,7 +69,8 @@ function setupEventListeners() {
   document.getElementById("timelineLocationFilter").addEventListener("change", renderTimeline);
   document.getElementById("timelineTypeFilter").addEventListener("change", renderTimeline);
 
-  document.getElementById("hypConfidence").addEventListener("input", function (e) {
+  // Arrow function, Demo 10: another plain callback, no `this` needed.
+  document.getElementById("hypConfidence").addEventListener("input", (e) => {
     document.getElementById("hypConfidenceValue").textContent = e.target.value;
   });
 }
