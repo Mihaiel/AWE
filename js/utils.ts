@@ -3,40 +3,33 @@
 // ---------------------------------------------------------------------
 // Small helpers a few different views need. The lookups still read
 // from shared state, they just don't belong to any one view.
-import { state, type HasId } from "./state.js";
+import { state } from "./state.js";
+import type { Evidence, Person, Location } from "./types.js";
 
 // Rewritten from an indexed for-loop to .find(), Exercise 2 Demo 5:
 // with noUncheckedIndexedAccess on, state.allEvidence[i] types as
-// `HasId | undefined` (TS can't prove i is in bounds), which the old
+// `T | undefined` (TS can't prove i is in bounds), which the old
 // loop never accounted for. .find() already returns `T | undefined`
 // by design, so this is the actually-correct version, not just a
 // type-checker-pleasing patch.
-export function findEvidenceById(id: string): HasId | null {
+export function findEvidenceById(id: string): Evidence | null {
   return state.allEvidence.find((item) => item.id === id) ?? null;
 }
 
-export function findPersonById(id: string): HasId | null {
+export function findPersonById(id: string): Person | null {
   return state.allPeople.find((item) => item.id === id) ?? null;
 }
 
-export function findLocationById(id: string): HasId | null {
+export function findLocationById(id: string): Location | null {
   return state.allLocations.find((item) => item.id === id) ?? null;
 }
 
-// Local, narrower-than-HasId shapes on purpose: this function only
-// needs an evidence-like record with an optional personIds list and a
-// person-like record with an id/name, not the full Evidence/Person
-// shape Demo 6 will define. Exercise 2, Demo 5.
-interface MentionsPersonLike {
-  personIds?: string[];
-}
-interface PersonLike {
-  id: string;
-  name: string;
-}
-
-export function evidenceMentionsPerson(ev: MentionsPersonLike, person: PersonLike): boolean {
-  if (!ev.personIds) return false;
+// Checks both person.id and person.name because evidence.json's
+// personIds isn't reliably one or the other - see types.ts's Evidence
+// comment. This dual check already existed before Demo 6; the real
+// Evidence/Person types just make the reason explicit instead of
+// implicit. Exercise 2, Demo 6.
+export function evidenceMentionsPerson(ev: Evidence, person: Person): boolean {
   return ev.personIds.indexOf(person.id) !== -1 || ev.personIds.indexOf(person.name) !== -1;
 }
 

@@ -264,15 +264,31 @@ ticked. The table above is just a fast overview, tick the boxes inside each demo
 
 **Tasks**
 
-- [ ] Define TypeScript types/interfaces for the case's data model (evidence, people, locations, timeline events) that match the shape of `data/*.json`.
-- [ ] Convert your data-loading module to use these types instead of untyped `fetch().json()` results.
-- [ ] Pick one field that was genuinely ambiguous or inconsistent in the original JavaScript version (for example: something that could be either an id or a display name, or a date stored in more than one format) and show what modeling it as a proper TypeScript type forced you to decide.
+- [x] Define TypeScript types/interfaces for the case's data model (evidence, people, locations, timeline events) that match the shape of `data/*.json`.
+
+      Added `js/types.ts` with `Case`, `Person`, `Location`, `Evidence`, `TimelineEvent`, matching the actual fields in `data/*.json`. `status`/`relevance`/`type`/`certainty` stay `string`, not string-literal unions, because the real JSON isn't consistent enough for that (see task 3 below).
+
+- [x] Convert your data-loading module to use these types instead of untyped `fetch().json()` results.
+
+      Converted `dataLoader.js` to `dataLoader.ts`. Each `fetch().json()` result is typed `unknown` first, then asserted to the right domain type (`as Evidence[]`, `as Person[]`, etc.), same pattern as Demo 5's `storage.ts`. Also had to turn on `allowJs` in `tsconfig.json`: once `dataLoader.ts` imports the still-untyped `views/*.js` modules, `tsc` refused to resolve those imports at all without it. `checkJs` stays off, so those files aren't type-checked yet, that's Demo 7.
+
+- [x] Pick one field that was genuinely ambiguous or inconsistent in the original JavaScript version and show what modeling it as a proper TypeScript type forced you to decide.
+
+      `personIds` on evidence. Almost every evidence item lists person ids (`"patch-vector"`), but `E04` lists a person name instead (`"Nova Byte"`). Typing it as `string[]` didn't fix the data, but writing the type down forced the explicit decision to keep `evidenceMentionsPerson()`'s existing double check (`person.id` or `person.name`) instead of quietly assuming every entry is a clean id.
 
 **Questions** (depend on the tasks above)
 
-- [ ] Walk through the ambiguous field you picked: how did the JavaScript version get away without deciding on one shape, and what did TypeScript force you to commit to?
-- [ ] Is there a data-shape problem in this app that TypeScript's static types **can't** catch on their own, because the actual bad data would only show up at runtime from a JSON file, not from your code? What would you need in addition to types to catch that?
-- [ ] What's the difference between an `interface` and a `type` alias for an object shape in TypeScript? Which did you use for your domain models, and does it actually matter here?
+- [x] Walk through the ambiguous field you picked: how did the JavaScript version get away without deciding on one shape, and what did TypeScript force you to commit to?
+
+      Plain JS never declares what's inside a `string[]`, so `personIds` could silently hold ids in 17 places and a name in one (`E04`) and nothing would complain. Writing `personIds: string[]` in `types.ts` doesn't ban that mix either, but it forced me to actually look at and document the inconsistency, and to keep the lookup code checking both `id` and `name` on purpose rather than by accident.
+
+- [x] Is there a data-shape problem in this app that TypeScript's static types **can't** catch on their own, because the actual bad data would only show up at runtime from a JSON file, not from your code? What would you need in addition to types to catch that?
+
+      Yes, the same `personIds` field, plus the casing mismatches in `evidence.json` (`E03`'s `"Test-Report"` vs everyone else's `"test-report"`, `E12`'s `"Reviewed"`/`"Unknown"` vs lowercase elsewhere). `fetch().json()` returns `any`, so asserting `as Evidence[]` just tells TypeScript to trust the file, it never actually reads it. Catching that needs runtime validation (e.g. a schema check with something like Zod) run on the real JSON, not just a type annotation.
+
+- [x] What's the difference between an `interface` and a `type` alias for an object shape in TypeScript? Which did you use for your domain models, and does it actually matter here?
+
+      Both can describe the same object shape but the main practical differences are that `interface` can be reopened/extended by another `interface` with the same name (declaration merging), while `type` can also name unions and other non-object shapes `interface` can't. Used `interface` for all five domain models, matching `state.ts`'s existing style. Doesn't actually matter here: none of these types need merging or union behaviour, so either would work identically.
 
 ---
 

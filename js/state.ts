@@ -7,19 +7,10 @@
 // fine. State that only ever mattered to one view stayed local to that
 // module instead, see CHANGES.MD for the reasoning behind each one.
 
-// Exercise 2, Demo 5: deliberately NOT modeling the real Evidence/Person/
-// Location/TimelineEvent shapes yet, that's Demo 6's job. This is the
-// minimal honest thing every record this app looks up by id actually
-// has, nothing more, so it can stay accurate without guessing ahead.
-export interface HasId {
-  id: string;
-}
-
-interface CaseData {
-  title?: string;
-  status?: string;
-  summary?: string;
-}
+// Exercise 2, Demo 6: now using the real Evidence/Person/Location/
+// TimelineEvent shapes from types.ts, replacing Demo 5's placeholder
+// HasId[] arrays.
+import type { Case, Person, Location, Evidence, TimelineEvent } from "./types.js";
 
 interface ViewRendered {
   dashboard: boolean;
@@ -30,15 +21,17 @@ interface ViewRendered {
 }
 
 interface AppState {
-  allEvidence: HasId[];
-  filteredEvidence: HasId[];
+  allEvidence: Evidence[];
+  filteredEvidence: Evidence[];
   bookmarks: string[];
   currentPage: string;
 
-  allPeople: HasId[];
-  allLocations: HasId[];
-  allTimeline: HasId[];
-  caseData: CaseData;
+  allPeople: Person[];
+  allLocations: Location[];
+  allTimeline: TimelineEvent[];
+  // Empty object until case.json loads; Partial<Case> says every field
+  // may still be missing instead of claiming the full Case shape early.
+  caseData: Partial<Case>;
 
   viewRendered: ViewRendered;
 
