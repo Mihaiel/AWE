@@ -25,13 +25,11 @@
     "noUnusedParameters": false,
 
     "noEmit": true,
-    // Exercise 2, Demo 6: flipped on once dataLoader.ts started importing
-    // the still-untyped views/*.js modules. With this false, tsc refused
-    // to resolve those imports at all (TS7016), which would block every
-    // .ts file from importing a .js one until the whole app is migrated.
-    // checkJs stays off (its default) - this only lets allowJs resolve
-    // and import .js, it doesn't start type-checking it. That's Demo 7.
-    "allowJs": true,
+    // Exercise 2, Demo 6 temporarily turned this on so dataLoader.ts
+    // could import the still-untyped views/*.js modules. Demo 7 finished
+    // converting every remaining .js file, so there's nothing left for
+    // it to apply to - back to false now that js/ is all .ts.
+    "allowJs": false,
     "skipLibCheck": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,

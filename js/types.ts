@@ -60,6 +60,10 @@ export interface Evidence {
   tags: string[];
   status: string;
   relevance: string;
+  // Not in evidence.json - set at runtime by applyStoredBookmarkFlags()/
+  // handleBookmarkClick() in evidence.ts. Optional because it's genuinely
+  // absent until one of those has run. Exercise 2, Demo 7.
+  bookmarked?: boolean;
 }
 
 export interface TimelineEvent {

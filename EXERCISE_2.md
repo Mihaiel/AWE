@@ -296,15 +296,43 @@ ticked. The table above is just a fast overview, tick the boxes inside each demo
 
 **Tasks**
 
-- [ ] Convert the remaining `.js` modules to `.ts`, and get the **entire app** compiling with zero TypeScript errors under the strictness settings from Demo 5.
-- [ ] Find at least 3 real spots where the compiler flagged something you had to actually think about (a union type, a possibly-`undefined` value, an implicit `any`, etc.). For each, decide and record whether it pointed at a real latent bug or was "just" the compiler being pedantic.
-- [ ] Confirm the app still behaves identically to the working JavaScript version — a type-safe app that behaves differently is not a successful migration.
+- [x] Convert the remaining `.js` modules to `.ts`, and get the **entire app** compiling with zero TypeScript errors under the strictness settings from Demo 5.
+
+      Converted `router.js`, `main.js`, and all five `views/*.js` files to `.ts`. `index.html`'s `<script src="js/main.js">` updated to `main.ts`. `npm run typecheck` and `npm run build` both pass with zero errors; `allowJs` (turned on temporarily in Demo 6) is back to `false`, nothing imports a `.js` file anymore.
+
+- [x] Find at least 3 real spots where the compiler flagged something you had to actually think about. For each, decide and record whether it pointed at a real latent bug or was "just" the compiler being pedantic.
+
+      See the three in the questions below: `noUncheckedIndexedAccess` on ordinary bounded loops (across all of `js/views/*.ts`), the `window.x = ...` assignments in `js/main.ts`, and `new Date() - new Date()` in `js/views/evidence.ts` and `js/views/timeline.ts`. All three were the compiler being pedantic about genuinely safe code, not real bugs, except one real mistake they indirectly helped me catch (see question 3, in `js/views/workspace.ts`).
+
+- [x] Confirm the app still behaves identically to the working JavaScript version.
+
+      Verified in the browser: dashboard counts, people/location cards and evidence counts, evidence search/filter/sort, bookmarking, status/relevance editing, notes, the timeline quick-view modal and its "Open full evidence" handoff, and the hypothesis form (save, then a full page reload to confirm it restores from `localStorage`) all work exactly as before.
 
 **Questions** (depend on the tasks above)
 
-- [ ] Show one specific type error you had to actually think about (not just silence with `any` or the `!` non-null assertion). What did it tell you about your code that plain JS review or testing hadn't?
-- [ ] When (if ever) is reaching for `any` the right call during a migration like this, versus a sign you should model the type properly? Where did you draw that line?
-- [ ] Did the migration reveal anything that was a genuine, previously-unnoticed bug (as opposed to just noise)? If yes, explain it. If no, explain how you're confident it was only noise.
+- [x] Show one specific type error you had to actually think about. What did it tell you about your code that plain JS review or testing hadn't?
+
+      `js/views/dashboard.ts:13`, before adding the `!`:
+
+      ```
+      if ((state.allEvidence[i].status || "").toLowerCase() === "reviewed") reviewedCount++;
+      ```
+
+      Running `npx tsc --noEmit` on that line gives:
+
+      ```
+      js/views/dashboard.ts(13,10): error TS2532: Object is possibly 'undefined'.
+      ```
+
+      `noUncheckedIndexedAccess` flagged this `array[i]` as possibly `undefined`, and the same thing showed up in every ordinary `for (let i = 0; i < array.length; i++)` loop across the view files (`js/views/dashboard.ts`, `js/views/people.ts`, `js/views/evidence.ts`, `js/views/timeline.ts`, `js/views/workspace.ts`), not just the lookup functions from Demo 5 (`js/utils.ts`). Fixed by adding `!` at each one: `i` is always in bounds by the loop condition, TypeScript just can't prove that from the loop's shape alone. It didn't reveal a bug, but it made visible how many places in this codebase quietly rely on "this loop is obviously safe" without the language actually backing that up.
+
+- [x] When (if ever) is reaching for `any` the right call during a migration like this, versus a sign you should model the type properly? Where did you draw that line?
+
+      Didn't need `any` anywhere in this migration. The one genuinely awkward case, `window.navigateTo = navigateTo` and five others in `js/main.ts`, isn't a job for `any` either: `Window`'s own type doesn't know about these properties, so I used `declare global { interface Window { ... } }` (also in `js/main.ts`) instead, which keeps the assignments checked against each function's real signature. `any` would've been faster but would've silently allowed assigning the wrong function to the wrong property.
+
+- [x] Did the migration reveal anything that was a genuine, previously-unnoticed bug (as opposed to just noise)? If yes, explain it. If no, explain how you're confident it was only noise.
+
+      Not a bug in the running app, but converting `js/views/workspace.ts` surfaced a real mistake in my own conversion: I'd typed the `hypNature` element (defined as a `<select>` in `index.html`) as `HTMLInputElement`. `tsc` didn't catch it, both element types have a `.value` property, so it's structurally valid, just the wrong element type. Caught it by testing the hypothesis form in the browser, not from a compiler error, which is itself the answer to the previous Demo 6 question about what types can't catch on their own.
 
 ---
 

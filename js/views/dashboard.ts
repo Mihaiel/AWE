@@ -4,13 +4,13 @@
 import { state } from "../state.js";
 import { formatDate, getStatusBadgeClass } from "../utils.js";
 
-export function renderDashboard() {
+export function renderDashboard(): void {
   const container = document.getElementById("dashboardContent");
   if (!container) return;
 
   let reviewedCount = 0;
   for (let i = 0; i < state.allEvidence.length; i++) {
-    if ((state.allEvidence[i].status || "").toLowerCase() === "reviewed") reviewedCount++;
+    if ((state.allEvidence[i]!.status || "").toLowerCase() === "reviewed") reviewedCount++;
   }
 
   const progressPct =
@@ -53,7 +53,7 @@ export function renderDashboard() {
     html += "<p>No evidence loaded yet.</p>";
   }
   for (let e = 0; e < recentEvidence.length; e++) {
-    const ev = recentEvidence[e];
+    const ev = recentEvidence[e]!;
     html +=
       '<div class="mini-list-item"><strong>' +
       ev.id +
@@ -73,7 +73,7 @@ export function renderDashboard() {
     html += "<p>No timeline events loaded yet.</p>";
   }
   for (let t = 0; t < recentTimeline.length; t++) {
-    const evt = recentTimeline[t];
+    const evt = recentTimeline[t]!;
     html +=
       '<div class="mini-list-item"><strong>' +
       formatDate(evt.time) +
@@ -91,7 +91,7 @@ export function renderDashboard() {
 // Arrow function, Demo 10: a tiny pure helper, no `this`, no `arguments`,
 // never called before this line runs (only from renderDashboard() above,
 // well after the whole module has already loaded) - a good candidate.
-const statCardHTML = (value, label) =>
+const statCardHTML = (value: number, label: string): string =>
   '<div class="stat-card"><div class="stat-value">' +
   value +
   '</div><div class="stat-label">' +

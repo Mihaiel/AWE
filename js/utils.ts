@@ -33,6 +33,20 @@ export function evidenceMentionsPerson(ev: Evidence, person: Person): boolean {
   return ev.personIds.indexOf(person.id) !== -1 || ev.personIds.indexOf(person.name) !== -1;
 }
 
+// document.getElementById() types as HTMLElement | null, which strict
+// null checks won't let callers treat as just HTMLElement. Every id this
+// app looks up is one hardcoded, always-rendered element in index.html,
+// so a missing one is a markup bug, not a case to handle gracefully -
+// this throws instead of letting every call site repeat the same null
+// check. The generic lets a call site narrow straight to the subtype it
+// needs (e.g. getEl<HTMLInputElement>(...)) instead of casting after.
+// Exercise 2, Demo 7.
+export function getEl<T extends HTMLElement = HTMLElement>(id: string): T {
+  const el = document.getElementById(id);
+  if (!el) throw new Error(`Expected element #${id} to exist`);
+  return el as T;
+}
+
 export function formatDate(ts: string | undefined): string {
   if (!ts) return "Unknown date";
   const d = new Date(ts);
