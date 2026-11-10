@@ -10,7 +10,7 @@ import {
   handleSortChange,
   clearFilters,
   closeEvidenceDetail,
-  saveCurrentNote
+  saveCurrentNote,
 } from "./views/evidence.js";
 import { renderTimeline } from "./views/timeline.js";
 import { switchPeopleTab } from "./views/people.js";

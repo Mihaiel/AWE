@@ -3,7 +3,12 @@
 // ---------------------------------------------------------------------
 import { state } from "./state.js";
 import { renderDashboard } from "./views/dashboard.js";
-import { renderEvidenceList, populateEvidenceDropdowns, applyStoredBookmarkFlags, markEvidenceDataLoaded } from "./views/evidence.js";
+import {
+  renderEvidenceList,
+  populateEvidenceDropdowns,
+  applyStoredBookmarkFlags,
+  markEvidenceDataLoaded,
+} from "./views/evidence.js";
 import { renderTimeline, populateTimelineDropdowns } from "./views/timeline.js";
 import { populateHypothesisDropdowns } from "./views/workspace.js";
 

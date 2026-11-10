@@ -1,0 +1,8 @@
+node_modules
+dist
+public
+package-lock.json
+
+# Running notes written in a specific prose style, not code - see
+# CHANGES.MD / Exercise 2, Demo 4 for why these stay out of scope.
+*.md

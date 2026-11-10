@@ -38,7 +38,7 @@ or answer on the spot, live.**
 | 1 | Initialize the package manager & project metadata | ☑ |
 | 2 | Integrate Vite as the dev server | ☑ |
 | 3 | Production build & preview | ☑ |
-| 4 | `package.json` scripts: lint & format | ☐ |
+| 4 | `package.json` scripts: lint & format | ☑ |
 | 5 | TypeScript setup & first conversions | ☐ |
 | 6 | Typing the domain data | ☐ |
 | 7 | Full migration & resolving type errors | ☐ |
@@ -179,15 +179,42 @@ ticked. The table above is just a fast overview, tick the boxes inside each demo
 
 **Tasks**
 
-- [ ] Install and configure a linter (e.g. ESLint) and a formatter (e.g. Prettier) for this TypeScript/JS project.
-- [ ] Add these scripts to `package.json`: `dev`, `build`, `lint`, `lint:fix`, `format`. Each one must actually do something real when run, not just print a placeholder.
-- [ ] Run `lint` and show it catching at least one real issue in your code (introduce one on purpose if you have to). Run `lint:fix` and/or `format` and show it actually changing a file.
+- [x] Install and configure a linter (e.g. ESLint) and a formatter (e.g. Prettier) for this TypeScript/JS project.
+
+      `npm install --save-dev eslint @eslint/js globals`
+
+      Installed ESLint with a flat `eslint.config.js`: `js.configs.recommended` plus a browser globals set (`window`, `document`, `fetch`, `localStorage`, ...) from the `globals` package, since this is a pure client-side app with zero Node-side code, ESLint assumes Node by default otherwise. `dist/`, `node_modules/`, and `public/` are excluded. 
+      
+      Installed Prettier too, with one deliberate override in `.prettierrc.json`, `printWidth: 100` instead of the default 80, since a lot of this codebase's HTML-string-building lines are naturally a bit long, and the default would have caused constant unnecessary rewrapping. `.prettierignore` excludes `node_modules`, `dist`, `public`, `package-lock.json`, and `*.md` (the running-notes docs are prose, not code, I didn't want Prettier reformatting those).
+
+- [x] Add these scripts to `package.json`: `dev`, `build`, `lint`, `lint:fix`, `format`. Each one must actually do something real when run, not just print a placeholder.
+
+      `npm run lint`
+      `npm run format`
+
+      `dev` and `build` already existed from Demos 2 and 3. I added `"lint": "eslint ."`, `"lint:fix": "eslint . --fix"`, and `"format": "prettier --write ."`.
+
+- [x] Run `lint` and show it catching at least one real issue in your code (introduce one on purpose if you have to). Run `lint:fix` and/or `format` and show it actually changing a file.
+
+      `npm run lint`
+
+      const blabla = 3; -> lint should show that it's not used anywhere
+
+      When working on the project i didn't need to introduce anything, `npm run lint` immediately caught 3 real `no-unused-vars` errors: `selectedEvidence` in `evidence.js`, `currentPeopleTab` in `people.js`. Ran `lint:fix` first, it left all three untouched, `no-unused-vars` has no autofixer (removing a declaration isn't something ESLint will do on its own). Fixed all three by hand instead, deleting the dead variable/parameter in each case, confirmed with a grep first that each was genuinely never read anywhere, then re-ran `lint`, clean. Then ran `format`, which did change files for real: 13 files got reformatted (long string-concatenation lines broken across multiple lines, trailing commas added, etc.), confirmed with `prettier --check .` first to see exactly which files it would touch before actually writing.
 
 **Questions** (depend on the tasks above)
 
-- [ ] What's the difference between what a linter checks/fixes and what a formatter checks/fixes? Give one concrete finding from each tool on this codebase.
-- [ ] Why are `lint` and `lint:fix` two separate scripts instead of one script that always auto-fixes? When would you deliberately want the non-fixing version?
-- [ ] What does `npm run lint` (or `pnpm lint`) actually do under the hood? Where does npm/pnpm look for the `lint` command, and would it work if your linter weren't installed as a project dependency (only globally on your machine)?
+- [x] What's the difference between what a linter checks/fixes and what a formatter checks/fixes? Give one concrete finding from each tool on this codebase.
+
+      A linter looks at what the code does, reachability, unused bindings, likely bugs, and can refuse to auto-fix things that need a real decision. A formatter only cares how the code *looks*, whitespace, line length, quote style, and will happily rewrite any of that without needing to understand the code's behavior at all. Concrete finding from each: ESLint's `no-unused-vars` catching the dead `resolvedTerm` parameter (a real, if minor, code-health issue, not a style issue), versus Prettier reflowing a long string-concatenation line in `dashboard.js` across several lines instead of one, purely cosmetic, the code did exactly the same thing either way.
+
+- [x] Why are `lint` and `lint:fix` two separate scripts instead of one script that always auto-fixes? When would you deliberately want the non-fixing version?
+
+      Because not every lint rule has a safe automatic fix, `no-unused-vars` is a perfect example from this very demo, ESLint can tell you a variable is dead but won't guess whether deleting it, renaming it, or actually wiring it up somewhere is the right call, that's a decision for a person. You'd deliberately want the plain `lint` (non-fixing) version anywhere you want to *see* the problems before anything changes, most obviously in CI (Demo 8), where you want the build to fail and show you exactly what's wrong, not silently rewrite a contributor's code and merge something they never actually reviewed.
+
+- [x] What does `npm run lint` (or `pnpm lint`) actually do under the hood? Where does npm/pnpm look for the `lint` command, and would it work if your linter weren't installed as a project dependency (only globally on your machine)?
+
+      `npm run lint` looks up the `"lint"` entry under `"scripts"` in `package.json`, and runs that exact string (`eslint .`) in a shell. The key mechanism: npm temporarily prepends this project's `node_modules/.bin` to the `PATH` for just that command, which is where the local `eslint` binary actually lives, that's how a bare `eslint .` resolves to this project's installed version instead of needing a full path. If ESLint weren't installed locally at all, `node_modules/.bin/eslint` simply wouldn't exist, but the shell would then fall through to whatever's on the normal system `PATH`, so it would still run *if* something global happened to be installed, just whatever version that happens to be, not the one pinned in `package.json`/the lockfile. 
 
 ---
 
