@@ -39,7 +39,7 @@ or answer on the spot, live.**
 | 2 | Integrate Vite as the dev server | ☑ |
 | 3 | Production build & preview | ☑ |
 | 4 | `package.json` scripts: lint & format | ☑ |
-| 5 | TypeScript setup & first conversions | ☐ |
+| 5 | TypeScript setup & first conversions | ☑ |
 | 6 | Typing the domain data | ☐ |
 | 7 | Full migration & resolving type errors | ☐ |
 | 8 | GitHub Actions: development workflow | ☐ |
@@ -222,15 +222,41 @@ ticked. The table above is just a fast overview, tick the boxes inside each demo
 
 **Tasks**
 
-- [ ] Install TypeScript and add a `tsconfig.json`. Deliberately choose your strictness settings (don't just copy a default blindly) and be ready to justify at least one setting you turned on or left off.
-- [ ] Convert 2–3 of your smallest/utility modules from Exercise 1 (e.g. formatting or lookup helpers) from `.js` to `.ts`, with **no `any`**, and get them compiling with zero errors.
-- [ ] Wire TypeScript into your `build`/`dev` scripts from Demo 4 so type errors are actually surfaced by your tooling, not just by your editor.
+- [x] Install TypeScript and add a `tsconfig.json`. Deliberately choose your strictness settings (don't just copy a default blindly) and be ready to justify at least one setting you turned on or left off.
+
+      npm install --save-dev typescript
+
+      Ran `npx tsc --init` first to get default file, then picked settings. Key settings: `strict: true`, `moduleResolution: "bundler"` (matches how Vite resolves modules), `noEmit: true` (Vite does the actual compiling, `tsc` is only ever a checker), `lib: ["ES2022", "DOM"]` (browser APIs, no Node code anywhere in this app).
+
+       One setting turned off: `noUnusedLocals`/`noUnusedParameters`, since ESLint's `no-unused-vars` (Demo 4) already does that job so no reason for two tools to check the same thing.
+
+- [x] Convert 2–3 of your smallest/utility modules from Exercise 1 (e.g. formatting or lookup helpers) from `.js` to `.ts`, with **no `any`**, and get them compiling with zero errors.
+
+      Converted `state.js`, `utils.js`, and `storage.js` to `.ts`, the task's own "formatting or lookup helpers" suggestion, and they're tightly coupled enough (`utils.ts`/`storage.ts` both import `state`) that converting just one alone wouldn't have made sense. Typed the state arrays with a minimal `HasId { id: string }` interface rather than the full `Evidence`/`Person`/`Location` shapes, that's Demo 6's job on purpose. `npx tsc --noEmit`: zero errors, and `grep -n "\bany\b"` across all three files finds nothing but the word inside comments.
+
+- [x] Wire TypeScript into your `build`/`dev` scripts from Demo 4 so type errors are actually surfaced by your tooling, not just by your editor.
+
+      Inside the package.json
+
+      Added `"typecheck": "tsc --noEmit"` and changed `"build"` to `"tsc --noEmit && vite build"`, the '&&' is used so when a type error happens, it blocks the production build entirely.
+      
+      Left `"dev"` as plain `vite`, on purpose: Vite's dev server doesn't type-check by default, and bolting that on would mean either a third-party plugin or a second concurrently-run process, more than this demo needs. `npm run typecheck` works fine run by hand alongside `npm run dev` in the meantime.
 
 **Questions** (depend on the tasks above)
 
-- [ ] What does the `strict` option in `tsconfig.json` actually turn on? Name at least two individual checks bundled under it, and say whether you kept it on and why.
-- [ ] What is the difference between a compile-time type error and the runtime bugs you fixed in Exercise 1? Could TypeScript alone have caught any of those specific bugs? Why or why not?
-- [ ] What does `any` do to TypeScript's checking for a value, and why did you avoid it in this first pass even though it would have been faster to just silence the errors with it?
+- [x] What does the `strict` option in `tsconfig.json` actually turn on? Name at least two individual checks bundled under it, and say whether you kept it on and why.
+
+      `strict: true` isn't one check, it's a switch that turns on a whole group of them at once. Two examples: `noImplicitAny` (an untyped value becomes an error instead of silently being allowed as `any`) and `strictNullChecks` (`null`/`undefined` have to be explicitly allowed before you can use them, instead of sneaking in everywhere). Kept it on, mainly because this is a brand-new setup with only 3 files, so strict is cheap right now and gets more painful to add later. Also turned on `noUncheckedIndexedAccess`, a separate flag `strict` doesn't include, after testing it against my own code and seeing it catch a real bug (an unchecked array index in three lookup functions, see the first task).
+
+- [x] What is the difference between a compile-time type error and the runtime bugs you fixed in Exercise 1? Could TypeScript alone have caught any of those specific bugs? Why or why not?
+
+      A compile-time error is caught by `tsc` just reading the code, before it ever runs. A runtime bug only shows up once the code actually executes with real data, which is every bug from Exercise 1, since that app had no type checking at all. Mixed answer on whether TypeScript would've caught them: yes for the Demo 9 bug in Exercise 1 (forgetting an `await` left `state.allPeople` holding a Promise instead of the array)
+      
+       No for Demo 2's mutation bug (`filteredEvidence = allEvidence`, two names for one array), that's perfectly valid, type-correct code, TypeScript has no concept of "these shouldn't secretly be the same object." And also no for the localStorage-corruption crash, that's bad data at runtime not a compile-time thing.
+
+- [x] What does `any` do to TypeScript's checking for a value, and why did you avoid it in this first pass even though it would have been faster to just silence the errors with it?
+
+      `any` turns off type checking for that value completely, you can call anything on it, pass it anywhere, and TypeScript never complains. It's not "be careful, unknown type", it's "stop checking this." Avoided it because using `any` on the very first file defeats the point of converting it at all, a file full of `any` shows "zero errors" the same way deleting the code would, that's zero *checked* code, not zero real problems. The one tricky spot, `JSON.parse()`'s own return type is `any`, got handled with `unknown` plus a narrowing check instead, so the "this could be anything" stays visible rather than silently vanishing.
 
 ---
 

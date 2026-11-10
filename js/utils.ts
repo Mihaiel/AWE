@@ -3,35 +3,44 @@
 // ---------------------------------------------------------------------
 // Small helpers a few different views need. The lookups still read
 // from shared state, they just don't belong to any one view.
-import { state } from "./state.js";
+import { state, type HasId } from "./state.js";
 
-export function findEvidenceById(id) {
-  for (let i = 0; i < state.allEvidence.length; i++) {
-    if (state.allEvidence[i].id === id) return state.allEvidence[i];
-  }
-  return null;
+// Rewritten from an indexed for-loop to .find(), Exercise 2 Demo 5:
+// with noUncheckedIndexedAccess on, state.allEvidence[i] types as
+// `HasId | undefined` (TS can't prove i is in bounds), which the old
+// loop never accounted for. .find() already returns `T | undefined`
+// by design, so this is the actually-correct version, not just a
+// type-checker-pleasing patch.
+export function findEvidenceById(id: string): HasId | null {
+  return state.allEvidence.find((item) => item.id === id) ?? null;
 }
 
-export function findPersonById(id) {
-  for (let i = 0; i < state.allPeople.length; i++) {
-    if (state.allPeople[i].id === id) return state.allPeople[i];
-  }
-  return null;
+export function findPersonById(id: string): HasId | null {
+  return state.allPeople.find((item) => item.id === id) ?? null;
 }
 
-export function findLocationById(id) {
-  for (let i = 0; i < state.allLocations.length; i++) {
-    if (state.allLocations[i].id === id) return state.allLocations[i];
-  }
-  return null;
+export function findLocationById(id: string): HasId | null {
+  return state.allLocations.find((item) => item.id === id) ?? null;
 }
 
-export function evidenceMentionsPerson(ev, person) {
+// Local, narrower-than-HasId shapes on purpose: this function only
+// needs an evidence-like record with an optional personIds list and a
+// person-like record with an id/name, not the full Evidence/Person
+// shape Demo 6 will define. Exercise 2, Demo 5.
+interface MentionsPersonLike {
+  personIds?: string[];
+}
+interface PersonLike {
+  id: string;
+  name: string;
+}
+
+export function evidenceMentionsPerson(ev: MentionsPersonLike, person: PersonLike): boolean {
   if (!ev.personIds) return false;
   return ev.personIds.indexOf(person.id) !== -1 || ev.personIds.indexOf(person.name) !== -1;
 }
 
-export function formatDate(ts) {
+export function formatDate(ts: string | undefined): string {
   if (!ts) return "Unknown date";
   const d = new Date(ts);
   if (isNaN(d.getTime())) return ts;
@@ -42,14 +51,14 @@ export function formatDate(ts) {
   );
 }
 
-export function getStatusBadgeClass(status) {
+export function getStatusBadgeClass(status: string | undefined): string {
   const s = (status || "").toLowerCase();
   if (s === "reviewed") return "badge-reviewed";
   if (s === "flagged") return "badge-flagged";
   return "badge-unreviewed";
 }
 
-export function getRelevanceBadgeClass(relevance) {
+export function getRelevanceBadgeClass(relevance: string | undefined): string {
   const r = (relevance || "").toLowerCase();
   if (r === "relevant") return "badge-relevant";
   return "badge-unreviewed";
@@ -59,7 +68,7 @@ export function getRelevanceBadgeClass(relevance) {
 // no `this`/`arguments`, nothing calls it before the module finishes
 // loading. Uses a block body (not a single-expression arrow) since it
 // has several early returns instead of one expression to hand back.
-export const certaintyBadgeClass = (certainty) => {
+export const certaintyBadgeClass = (certainty: string | undefined): string => {
   if (certainty === "confirmed") return "reviewed";
   if (certainty === "contradictory") return "critical";
   if (certainty === "reported") return "flagged";
@@ -73,4 +82,5 @@ export const certaintyBadgeClass = (certainty) => {
 // fixing all 8 copies. Output is byte-for-byte identical to before.
 // Arrow function, Demo 10: single expression, so this one gets an
 // implicit return instead of a block body + explicit `return`.
-export const optionHTML = (value, label) => '<option value="' + value + '">' + label + "</option>";
+export const optionHTML = (value: string, label: string): string =>
+  '<option value="' + value + '">' + label + "</option>";

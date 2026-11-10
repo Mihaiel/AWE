@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+
+    "strict": true,
+
+    // Exercise 2, Demo 5: adopted after exploring `tsc --init`'s
+    // generated default against this codebase. noUncheckedIndexedAccess
+    // immediately caught a real gap in utils.ts's find*ById functions
+    // (array[i] assumed always valid, which TS can't actually prove),
+    // so it earned its spot here rather than being copied blindly.
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "verbatimModuleSyntax": true,
+    "noUncheckedSideEffectImports": true,
+
+    // ESLint's no-unused-vars (Demo 4) already owns this job, no reason
+    // to make two tools disagree about the same dead code.
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+
+    "noEmit": true,
+    "allowJs": false,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", "dist", "public"]
+}
