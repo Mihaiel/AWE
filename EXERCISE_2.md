@@ -37,7 +37,7 @@ or answer on the spot, live.**
 |---|---|---|
 | 1 | Initialize the package manager & project metadata | ☑ |
 | 2 | Integrate Vite as the dev server | ☑ |
-| 3 | Production build & preview | ☐ |
+| 3 | Production build & preview | ☑ |
 | 4 | `package.json` scripts: lint & format | ☐ |
 | 5 | TypeScript setup & first conversions | ☐ |
 | 6 | Typing the domain data | ☐ |
@@ -57,42 +57,42 @@ ticked. The table above is just a fast overview, tick the boxes inside each demo
 
 - [x] Choose **npm** or **pnpm** and record why you picked it over the other.
 
-  Chose npm. I already know it and I'm familiar with it, that's the whole reason, not some deep technical comparison against pnpm. It comes bundled with Node, so there's nothing extra to install, and every command I'd need (`npm install`, `npm run ...`) is already muscle memory.
+      Chose npm. I already know it and I'm familiar with it, that's the whole reason, not some deep technical comparison against pnpm. It comes bundled with Node, so there's nothing extra to install, and every command I'd need (`npm install`, `npm run ...`) is already muscle memory.
 
 - [x] Initialize `package.json` for the project (name, version, description, etc. filled in properly).
 
-  Ran `npm init -y` then filled in the fields that actually matter instead of leaving the generated defaults: `name` is `remotion-investigation-portal` (the folder name has spaces in it, which isn't a valid npm package name), `version` starts at `0.1.0` since this is mid-course work in progress, a real `description` pulled from what the app actually does, `"private": true` since this is never getting published to the npm registry, and `"type": "module"` since the app and any future build config are ESM throughout.
+      Ran `npm init -y` then filled in the fields that actually matter instead of leaving the generated defaults: `name` is `remotion-investigation-portal` (the folder name has spaces in it, which isn't a valid npm package name), `version` starts at `0.1.0` since this is mid-course work in progress, a real `description` pulled from what the app actually does, `"private": true` since this is never getting published to the npm registry, and `"type": "module"` since the app and any future build config are ESM throughout.
 
 - [x] Add a `.gitignore` entry for `node_modules` (and any other tool output you generate in later demos, e.g. `dist/`).
 
-  Added both `node_modules` and `dist` (`dist` now since Demo 3 will need it).
+      Added both `node_modules` and `dist` (`dist` now since Demo 3 will need it).
 
 - [x] Install one real dependency (you'll add more in later demos) and show the resulting lockfile (`package-lock.json` or `pnpm-lock.yaml`) committed to the repo.
 
-  Installed `date-fns` a small, genuinely useful date-formatting library, picked because it actually lines up with the ad-hoc `formatDate()` helper already sitting in `utils.js`, not a throwaway pick just to satisfy this checkbox. `package-lock.json` got generated automatically and sits right next to `package.json`, both staged to commit together. 
-  `esbuild` as well because I used it in the past.
+      Installed `date-fns` a small, genuinely useful date-formatting library, picked because it actually lines up with the ad-hoc `formatDate()` helper already sitting in `utils.js`, not a throwaway pick just to satisfy this checkbox. `package-lock.json` got generated automatically and sits right next to `package.json`, both staged to commit together. 
+      `esbuild` as well because I used it in the past.
 
-  Didn't import `date-fns` into any app code yet on purpose, the app still runs as a plain `<script type="module">` with no bundler, and a browser can't resolve `import { format } from "date-fns"` from `node_modules` without one, that only becomes possible once Vite exists starting Demo 2.
+      Didn't import `date-fns` into any app code yet on purpose, the app still runs as a plain `<script type="module">` with no bundler, and a browser can't resolve `import { format } from "date-fns"` from `node_modules` without one, that only becomes possible once Vite exists starting Demo 2.
 
 **Questions** (depend on the tasks above)
 
 - [x] What problem does a package manager actually solve that "download the library and put it in a folder yourself" doesn't? Be specific.
 
-  Manually downloading a library doesn't track what version you have, doesn't know what that library itself depends on (and those dependencies have their own dependencies), and gives you no repeatable way to reconstruct the exact same set of files on a teammate's machine or in CI. `npm install esbuild` resolved one package but actually pulled in exactly what's declared in its own `package.json`, recorded the exact resolved version and integrity hash in the lockfile, and gives anyone who clones this repo a single command (`npm install`) that reproduces precisely the same `node_modules` tree. Doing that by hand for even a handful of real dependencies with their own sub-dependencies isn't realistically something you'd get right, or keep right as versions move.
+      Manually downloading a library doesn't track what version you have, doesn't know what that library itself depends on (and those dependencies have their own dependencies), and gives you no repeatable way to reconstruct the exact same set of files on a teammate's machine or in CI. `npm install esbuild` resolved one package but actually pulled in exactly what's declared in its own `package.json`, recorded the exact resolved version and integrity hash in the lockfile, and gives anyone who clones this repo a single command (`npm install`) that reproduces precisely the same `node_modules` tree. Doing that by hand for even a handful of real dependencies with their own sub-dependencies isn't realistically something you'd get right, or keep right as versions move.
 
 - [x] What's the difference between `dependencies` and `devDependencies` in `package.json`? Which
       category will Vite, your linter/formatter, and TypeScript belong to, and why?
 
-  `dependencies` are packages the shipped app actually needs at runtime, code that ends up genuinely executing for a real user. `devDependencies` are packages only needed while building or working on the project, never shipped to a user's browser. `date-fns`, the one dependency installed in this demo, is a `dependency` since I'm planning on actually calling its functions from code that runs in the browser. Vite, the linter, the formatter, and TypeScript are all going to be `devDependencies`, none of them ship to the browser, Vite and TypeScript's whole job is to produce the final plain JS/HTML/CSS *before* a user ever sees it, and the linter/formatter only ever run against source code on a developer's or CI's machine.
+      `dependencies` are packages the shipped app actually needs at runtime, code that ends up genuinely executing for a real user. `devDependencies` are packages only needed while building or working on the project, never shipped to a user's browser. `date-fns`, the one dependency installed in this demo, is a `dependency` since I'm planning on actually calling its functions from code that runs in the browser. Vite, the linter, the formatter, and TypeScript are all going to be `devDependencies`, none of them ship to the browser, Vite and TypeScript's whole job is to produce the final plain JS/HTML/CSS *before* a user ever sees it, and the linter/formatter only ever run against source code on a developer's or CI's machine.
 
 - [x] What is a lockfile for, and what could go wrong for your teammates (or CI) if it weren't
       committed to the repo?
 
-  `package.json`'s version ranges (`^4.4.0`) describe a *range* of acceptable versions, not one exact version, `package-lock.json` pins the *exact* version (and exact version of every nested dependency) that was actually resolved and installed. Without it committed, a teammate running `npm install` next week, or a CI machine running it next month, could get a newer version within that same range, one that behaves subtly differently or outright breaks something, with no way to know that's *why* it broke, since their `package.json` looks identical to mine. The lockfile is what makes "works on my machine" actually mean "works on every machine," by removing that ambiguity entirely.
+      `package.json`'s version ranges (`^4.4.0`) describe a *range* of acceptable versions, not one exact version, `package-lock.json` pins the *exact* version (and exact version of every nested dependency) that was actually resolved and installed. Without it committed, a teammate running `npm install` next week, or a CI machine running it next month, could get a newer version within that same range, one that behaves subtly differently or outright breaks something, with no way to know that's *why* it broke, since their `package.json` looks identical to mine. The lockfile is what makes "works on my machine" actually mean "works on every machine," by removing that ambiguity entirely.
 
 - [x] If you chose pnpm: what does it do differently from npm regarding how `node_modules` is laid out and how disk space/install time is shared across projects? If you chose npm: what would you gain or lose by switching to pnpm on a larger project?
 
-  I chose npm, so: pnpm keeps one single global content-addressable store of every package version on disk, and every project's `node_modules` is filled with hard links (or similar) pointing back into that shared store instead of each project getting its own full physical copy.
+      I chose npm, so: pnpm keeps one single global content-addressable store of every package version on disk, and every project's `node_modules` is filled with hard links (or similar) pointing back into that shared store instead of each project getting its own full physical copy.
 
 ---
 
@@ -102,38 +102,38 @@ ticked. The table above is just a fast overview, tick the boxes inside each demo
 
 - [x] Install Vite and configure it for this project (restructure files if needed so Vite can find `index.html`/your modules/the `data/` and `assets/` folders correctly).
 
-  Installed Vite as a devDependency (`npm install --save-dev vite`). `index.html`, `js/`, and `styles.css` needed no changes at all, they were already at the project root using relative paths (Vite default settings). `data/` and `assets/` did need to move though, both get reached by a plain runtime URL (`fetch("data/evidence.json")`, `<img src="assets/logo/logo.svg">`), not by an `import`, and Vite only serves (and later copies into `dist/`) files like that as-is if they live under `public/`. 
+      Installed Vite as a devDependency (`npm install --save-dev vite`). `index.html`, `js/`, and `styles.css` needed no changes at all, they were already at the project root using relative paths (Vite default settings). `data/` and `assets/` did need to move though, both get reached by a plain runtime URL (`fetch("data/evidence.json")`, `<img src="assets/logo/logo.svg">`), not by an `import`, and Vite only serves (and later copies into `dist/`) files like that as-is if they live under `public/`. 
   
-  The recommendation was to move both with `git mv` so the history stays a rename instead of a delete+add, into `public/data/` and `public/assets/`.
+      The recommendation was to move both with `git mv` so the history stays a rename instead of a delete+add, into `public/data/` and `public/assets/`.
 
 - [x] Get `vite`'s dev server running the app with the same functionality it had before. Verify every view still works, not just that the page loads.
 
-  Added a `"dev": "vite"` script which can be ran with `npm run dev`.
+      Added a `"dev": "vite"` script which can be ran with `npm run dev`.
   
-   Checked the Network tab first, `/assets/logo/logo.svg` and all five `/data/*.json` files came back 200 straight from `public/`, confirming the restructure actually worked and not just that the page loaded. Then clicked through all five views.
+      Checked the Network tab first, `/assets/logo/logo.svg` and all five `/data/*.json` files came back 200 straight from `public/`, confirming the restructure actually worked and not just that the page loaded. Then clicked through all five views.
    
-   Dashboard (stats + recent panels), Evidence (list, a detail view, editing its status select), People & Locations (both tabs, including the portrait images), Timeline, and Workspace (bookmarks/notes/hypothesis form), all identical to how they worked on the plain static server.
+      Dashboard (stats + recent panels), Evidence (list, a detail view, editing its status select), People & Locations (both tabs, including the portrait images), Timeline, and Workspace (bookmarks/notes/hypothesis form), all identical to how they worked on the plain static server.
 
 - [x] Trigger Hot Module Replacement at least once: change something in the running app's source and observe the update happen without a full page reload.
 
-  Typed a search term into the Evidence search box first, so I'd have some obvious in-memory state to watch. Edited `styles.css` (changed the header's background to a solid color) while the dev server was running: the header color changed instantly, and the search box still had my typed text in it, filters still applied, nav still on Evidence. Confirmed in the console too: `[vite] css hot updated: /styles.css`, no new `connecting...`/`connected.` pair, meaning no reload happened at all. Reverted the CSS change right after.
+      Typed a search term into the Evidence search box first, so I'd have some obvious in-memory state to watch. Edited `styles.css` (changed the header's background to a solid color) while the dev server was running: the header color changed instantly, and the search box still had my typed text in it, filters still applied, nav still on Evidence. Confirmed in the console too: `[vite] css hot updated: /styles.css`, no new `connecting...`/`connected.` pair, meaning no reload happened at all. Reverted the CSS change right after.
 
 **Questions** (depend on the tasks above)
 
 - [x] What is the difference between how you used to run this app (a plain static file server) and running it through Vite's dev server? Name at least one thing Vite's dev server does that a plain static server doesn't.
 
-  A plain static server (`python -m http.server`, or the `http.server` one I'd been using throughout Exercise 1) does exactly one thing: it reads a file off disk and sends its bytes back, unmodified, for whatever path you request. 
+      A plain static server (`python -m http.server`, or the `http.server` one I'd been using throughout Exercise 1) does exactly one thing: it reads a file off disk and sends its bytes back, unmodified, for whatever path you request. 
   
-  Vite's dev server does that too for anything under `public/`, but for everything else it's actually running a transform pipeline, it injects a small HMR client script (Hot module replacement) into `index.html` on the fly, serves the JS/CSS through its own module-aware middleware instead of handing back the literal file, and watches your source files so it can push updates to the browser over a WebSocket the instant something changes. This doesn't exist in a plain static server which would need refreshes.
+      Vite's dev server does that too for anything under `public/`, but for everything else it's actually running a transform pipeline, it injects a small HMR client script (Hot module replacement) into `index.html` on the fly, serves the JS/CSS through its own module-aware middleware instead of handing back the literal file, and watches your source files so it can push updates to the browser over a WebSocket the instant something changes. This doesn't exist in a plain static server which would need refreshes.
 
 - [x] What is Hot Module Replacement, and what specifically did you observe happen (and *not* happen, e.g. to app state) when you triggered it?
 
-  HMR is Vite's dev server pushing just the changed component to the already-running page over that WebSocket connection, and swapping it in place, instead of reloading the whole page from scratch. What I actually observed: editing `styles.css` hot-swapped the stylesheet with the typed search text, the active filters, and the current view all still intact, nothing about the running app's JS state was touched. I tried with JS as well but this didn't work and after a quick search that's how it's supossed to be.
+      HMR is Vite's dev server pushing just the changed component to the already-running page over that WebSocket connection, and swapping it in place, instead of reloading the whole page from scratch. What I actually observed: editing `styles.css` hot-swapped the stylesheet with the typed search text, the active filters, and the current view all still intact, nothing about the running app's JS state was touched. I tried with JS as well but this didn't work and after a quick search that's how it's supossed to be.
 
 
 - [x] Why does an app already split into ES modules (Exercise 1) integrate naturally with a tool like Vite, compared to the original single-`<script>` version?
 
-  Vite's entire dev-server model is built around the browser's native ES module loader, it serves your actual `import`/`export` source files directly (through its transform middleware) and lets the browser resolve the `import` graph itself, rather than needing to bundle everything into one file before anything can run. The original single 1085-line `app.js` from before Exercise 1 had no `import`/`export` statements at all, there was no module graph for Vite to even hook into, it would've just been one opaque script Vite could serve but couldn't meaningfully apply per-module HMR to. Because Exercise 1 already split this into eleven real ES modules with explicit imports between them, Vite could slot in underneath with zero restructuring of the JS itself, each file is already its own addressable module.
+      Vite's entire dev-server model is built around the browser's native ES module loader, it serves your actual `import`/`export` source files directly (through its transform middleware) and lets the browser resolve the `import` graph itself, rather than needing to bundle everything into one file before anything can run. The original single 1085-line `app.js` from before Exercise 1 had no `import`/`export` statements at all, there was no module graph for Vite to even hook into, it would've just been one opaque script Vite could serve but couldn't meaningfully apply per-module HMR to. Because Exercise 1 already split this into eleven real ES modules with explicit imports between them, Vite could slot in underneath with zero restructuring of the JS itself, each file is already its own addressable module.
 
 ---
 
@@ -141,15 +141,37 @@ ticked. The table above is just a fast overview, tick the boxes inside each demo
 
 **Tasks**
 
-- [ ] Run the production build (`vite build`) and inspect the generated `dist/` folder.
-- [ ] Serve that build locally with `vite preview` (not the dev server) and confirm the app still works end-to-end from the built output.
-- [ ] Compare the dev-mode source with the built output for at least one file: note what changed (filenames, size, formatting/minification).
+- [x] Run the production build (`vite build`) and inspect the generated `dist/` folder.
+
+      `npm run build`
+
+      Added `"build": "vite build"` to `package.json` and ran it: `15 modules transformed`, output was `dist/index.html` (10.52 kB), `dist/assets/index-B_6IgYD9.js` (23.29 kB, gzip 6.26 kB), and `dist/assets/index-ZAWMSz9M.css` (11.44 kB, gzip 2.77 kB), plus `dist/data/*.json` and `dist/assets/logo/`/`dist/assets/people/*` copied over unchanged from `public/`. All eleven `js/` source files became exactly one JS file, all of `styles.css` became exactly one CSS file, both with a content hash in the filename, the stuff that lived in `public/` came through completely untouched, same filenames, no hash.
+
+- [x] Serve that build locally with `vite preview` (not the dev server) and confirm the app still works end-to-end from the built output.
+
+      `npm run preview`
+
+      Added `"preview": "vite preview"` to the central `package.json` and ran it. Console had no `[vite] connecting...` messages this time (no HMR client in a production build, confirming it really is a different thing from `vite dev`). 
+      
+      Checked the Network tab and the hashed `/assets/index-B_6IgYD9.js`, `/assets/index-ZAWMSz9M.css`, `/assets/logo/logo.svg`, and all five `/data/*.json` arrived correctly. Everything behaved identically to the dev server and the original static-file version.
+
+- [x] Compare the dev-mode source with the built output for at least one file: note what changed (filenames, size, formatting/minification).
+
+      Compared `styles.css` (14,534 bytes, dev) against `dist/assets/index-ZAWMSz9M.css` (11,442 bytes, built). The filename changed completely, from a plain name to `index-<8-char-hash>.css`. The leading `/* Project ReMotion - Investigation Portal styles */` comment is gone entirely. Every rule got squashed onto effectively one line, no newlines or indentation left. `#ffffff` became the shorthand `#fff`. Same CSS rules, same selectors, same cascade, just about 21% smaller and completely unreadable by a human now.
 
 **Questions** (depend on the tasks above)
 
-- [ ] Name at least three concrete transformations Vite applied to your source when building for production (e.g. bundling, minification, hashed filenames. Pick the ones you actually observed).
-- [ ] Why do production filenames typically include a content hash? What problem does that solve for real deployments?
-- [ ] Why would you never want to deploy the dev server itself (`vite dev`/`vite`) to real users, even though it "works"?
+- [x] Name at least three concrete transformations Vite applied to your source when building for production (e.g. bundling, minification, hashed filenames. Pick the ones you actually observed).
+
+      Bundling: all eleven separate `js/*.js` / `js/views/*.js` files (48,435 bytes combined) became exactly one `index-B_6IgYD9.js` (23,291 bytes), one network request instead of eleven. Minification: the bundled JS has single-letter variable names, no whitespace, and the CSS lost its comment and all its formatting, the same transformation I saw on the CSS file directly above. Hashed filenames: both `index-B_6IgYD9.js` and `index-ZAWMSz9M.css` have an 8-character content hash baked into the name, neither exists anywhere in the source. A fourth one I also noticed: `index.html` itself got rewritten, its `<script>`/`<link>` tags now point at those exact hashed filenames instead of the original `js/main.js`/`styles.css` paths.
+
+- [x] Why do production filenames typically include a content hash? What problem does that solve for real deployments?
+
+      The hash is a hash of the file's contents, so it only changes when the actual bytes change. That means you can tell browsers (and CDNs, and any intermediate cache) to cache `index-B_6IgYD9.js` forever, aggressively, since the moment the code actually changes, the build produces a differently named file, `index-<new-hash>.js`, there's no way for a stale cached copy under the old name to ever get served for the new code.
+
+- [x] Why would you never want to deploy the dev server itself (`vite dev`/`vite`) to real users, even though it "works"?
+
+      The dev server serves the source files mostly as-is, unbundled (eleven separate JS requests instead of one), unminified (full variable names, all the comments I wrote throughout Exercise 1 still in there, readable by anyone who opens devtools), and it injects a WebSocket-connected HMR client into every page load whose entire job is to listen for file-change events that will simply never come from a real user.
 
 ---
 
