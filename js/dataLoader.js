@@ -25,28 +25,26 @@ function hideLoadingStep() {
   }
 }
 
-function loadCorePeopleAndLocations() {
-  return fetch("data/case.json").then(function (caseRes) {
-    return caseRes.json().then(function (caseJson) {
-      state.caseData = caseJson;
+// Was a 6-level-deep .then() chain (fetch->json->fetch->json->fetch->json),
+// one fetch had to fully resolve before the next even started. Rewritten
+// as async/await, same exact sequential order, nothing parallelized -
+// that's a later exercise. See CHANGES.MD / Demo 9.
+async function loadCorePeopleAndLocations() {
+  const caseRes = await fetch("data/case.json");
+  const caseJson = await caseRes.json();
+  state.caseData = caseJson;
 
-      return fetch("data/people.json").then(function (peopleRes) {
-        return peopleRes.json().then(function (peopleJson) {
-          state.allPeople = peopleJson;
+  const peopleRes = await fetch("data/people.json");
+  const peopleJson = await peopleRes.json();
+  state.allPeople = peopleJson;
 
-          return fetch("data/locations.json").then(function (locationsRes) {
-            return locationsRes.json().then(function (locationsJson) {
-              state.allLocations = locationsJson;
+  const locationsRes = await fetch("data/locations.json");
+  const locationsJson = await locationsRes.json();
+  state.allLocations = locationsJson;
 
-              hideLoadingStep();
-              renderDashboard();
-              populateAllDropdowns();
-            });
-          });
-        });
-      });
-    });
-  });
+  hideLoadingStep();
+  renderDashboard();
+  populateAllDropdowns();
 }
 
 function loadEvidenceData() {
@@ -73,23 +71,23 @@ function loadEvidenceData() {
     });
 }
 
-function loadTimelineData() {
-  return fetch("data/timeline.json")
-    .then(function (res) {
-      return res.json();
-    })
-    .then(function (data) {
-      state.allTimeline = data;
-      renderDashboard();
-      if (state.currentPage === "timeline") renderTimeline();
-      populateAllDropdowns();
-    })
-    .catch(function (err) {
-      console.log("timeline load error", err);
-    })
-    .finally(function () {
-      hideLoadingStep();
-    });
+// Second .then()/.catch()/.finally() -> async/await conversion for
+// Demo 9. try/catch/finally map onto it directly: the catch still only
+// logs (doesn't rethrow), and finally still always runs hideLoadingStep()
+// whether the fetch succeeded or failed. See CHANGES.MD.
+async function loadTimelineData() {
+  try {
+    const res = await fetch("data/timeline.json");
+    const data = await res.json();
+    state.allTimeline = data;
+    renderDashboard();
+    if (state.currentPage === "timeline") renderTimeline();
+    populateAllDropdowns();
+  } catch (err) {
+    console.log("timeline load error", err);
+  } finally {
+    hideLoadingStep();
+  }
 }
 
 export function loadAllData() {

@@ -401,36 +401,62 @@ A guided tour, so you know where things live before you need them.
 
 **Tasks**
 
-- [ ] Find the most deeply nested chain of `.then()` calls in the data-loading code. Before
+- [x] Find the most deeply nested chain of `.then()` calls in the data-loading code. Before
       touching it, sketch/describe its shape (how many levels deep, and what has to succeed before
       the next level even starts).
-- [ ] Rewrite it as an `async` function using `await`, preserving its exact current behavior —
+
+  `loadCorePeopleAndLocations()` in `dataLoader.js`, by far. Six levels deep: `fetch(case.json).then(caseRes => caseRes.json().then(caseJson => { ...fetch(people.json).then(peopleRes => peopleRes.json().then(peopleJson => { ...fetch(locations.json).then(locationsRes => locationsRes.json().then(locationsJson => {...})) })) }))`. Three fetch-then-parse pairs, strictly serial, `case.json` has to fully arrive and parse before `people.json` even starts, and `people.json` has to fully resolve before `locations.json` starts. Nothing about it runs in parallel, on purpose (that's for a later exercise).
+
+- [x] Rewrite it as an `async` function using `await`, preserving its exact current behavior —
       **including** that it currently loads its requests one after another rather than in parallel
       (don't fix that yet, that's a later exercise).
-- [ ] Do the same conversion for at least one more place in the app that currently uses
+
+  Rewrote it as `async function loadCorePeopleAndLocations()` with three straight-line `await fetch(...)` / `await res.json()` pairs, one after another, same as before, nothing parallelized. Verified the request order in the Network tab afterward, `case.json`, then `people.json`, then `locations.json`, in that exact order, same as the original.
+
+- [x] Do the same conversion for at least one more place in the app that currently uses
       `.then()`/`.catch()`/`.finally()`, making sure any error handling the original had is still
       present.
-- [ ] Verify with the debugger (a breakpoint inside your new `async` function, stepping through with
+
+  Converted `loadTimelineData()` too, since it has both a `.catch()` *and* a `.finally()`, a better test of the mapping than `loadCorePeopleAndLocations()` (which had neither). `.catch()` became a `catch` block that still just logs the error, `.finally()` became a `finally` block that still always calls `hideLoadingStep()`. Verified both halves for real: renamed `data/timeline.json` away temporarily to force a failed fetch, reloaded, and got the exact same `"timeline load error" SyntaxError: Unexpected token '<'...` in the console as before (the 404 page's HTML isn't valid JSON, so `res.json()` itself rejects), and the loading overlay still cleared correctly, meaning `finally` still ran. Put the file back right after.
+
+- [x] Verify with the debugger (a breakpoint inside your new `async` function, stepping through with
       the Call Stack panel open) that the order of operations is unchanged from before your
       refactor.
 
 **Questions** (depend on the tasks above)
 
-- [ ] Explain, in your own words, why the nested `.then()` chain you sketched is harder to reason
+- [x] Explain, in your own words, why the nested `.then()` chain you sketched is harder to reason
       about than the `async`/`await` version — even though they run identically.
-- [ ] What does the `await` keyword actually do to the execution of the `async` function it's
+
+  The nested version makes you track indentation depth to know what's still "inside" what, by the third level you're six `function(...)` wrappers deep, and the actual sequence of "do this, then this, then this" is buried inside nested callback bodies instead of just being, visually, a sequence. The `async`/`await` version reads top to bottom like ordinary synchronous code, one statement after another, in the exact order they happen. Same runtime behavior, completely different amount of mental bookkeeping needed to follow it.
+
+- [x] What does the `await` keyword actually do to the execution of the `async` function it's
       inside? What is the rest of the *program* doing while that function is "waiting"?
-- [ ] An `async` function always returns a Promise, even if the code inside it does
+
+  `await` pauses that `async` function at that exact line and hands control back to the caller until the awaited Promise settles, it does not block the rest of the program. The rest of the page, event listeners, other code, the browser's rendering, keeps running completely normally in the meantime, `await` only pauses the one function it's written in, picking back up (resuming from that exact line) once the Promise resolves or rejects.
+
+- [x] An `async` function always returns a Promise, even if the code inside it does
       `return someValue;` for a plain value. Prove you understand this: what do you get if you call
       `.then()` on the result of your refactored function, and log it?
-- [ ] What is the `async`/`await` equivalent of a `.catch()`? What happens at runtime if you forget
+
+  Tested this directly with a tiny equivalent: an `async function` that just does `return "all three fetches done";`, then `.then(value => ...)` on calling it. The value `.then()` hands you is the plain string itself, `"all three fetches done"`, not a Promise object, `.then()` always unwraps whatever the `async` function returned, wrapped or not. My actual `loadCorePeopleAndLocations()` doesn't explicitly return anything, so calling `.then()` on it (which is exactly what `loadAllData()` already does) gets `undefined`, same as it always did.
+
+- [x] What is the `async`/`await` equivalent of a `.catch()`? What happens at runtime if you forget
       it and the `await`ed operation rejects?
-- [ ] Is `async`/`await` code *faster* than the equivalent `.then()` chain? Explain precisely what
+
+  Wrapping the `await`s in a `try`/`catch` block is the equivalent, the `catch` block runs if anything awaited inside the `try` rejects, same as a `.catch()` would further down a `.then()` chain. If you forget it entirely and an awaited operation rejects, the `async` function's own returned Promise becomes rejected with that same error, and if nothing further down the chain ever catches it either, it surfaces as an uncaught (unhandled) promise rejection, logged to the console, execution of that function just stops at the point it rejected, nothing after that `await` ever runs.
+
+- [x] Is `async`/`await` code *faster* than the equivalent `.then()` chain? Explain precisely what
       does and doesn't change about execution when you do this kind of refactor.
-- [ ] Deliberately break your own refactor by removing one `await` you just added (leaving the
+
+  No, and it was never going to be, `async`/`await` is syntax sugar over the exact same Promise machinery, the JS engine does the same work either way. What changes is purely how the code reads and how you write it, not the order operations happen in, not how many requests fire, not how long anything takes. I confirmed this by watching the Network tab request order before and after the refactor, `case.json` → `people.json` → `locations.json`, identical sequence, identical timing characteristics, only the source code's shape changed.
+
+- [x] Deliberately break your own refactor by removing one `await` you just added (leaving the
       function still `async`). What breaks, and how does that relate to a category of bug you may
       have already dealt with in Demos 2–5 (a Promise being treated as if it were already-resolved
       data)?
+
+  Removed the `await` on `peopleRes.json()`, so `state.allPeople` gets set to the Promise object itself instead of the parsed array. Nothing crashes, nothing logs an error, `state.allPeople` is just silently a Promise now. The People view ends up completely empty, no cards, no error, because `state.allPeople.length` on a Promise is `undefined`, and `for (let i = 0; i < undefined; i++)` just never runs even once. This is exactly the same bug category as Demo 4's `loadNoteAsync` issue, and basically every bug this whole exercise keeps circling back to: treating a Promise as if it were already the resolved value underneath it, instead of the wrapper around a value that might not exist yet.
 
 ---
 
