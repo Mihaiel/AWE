@@ -38,7 +38,7 @@ your fix works.
 | 6 | Use the JavaScript debugger | ☑ |
 | 7 | DevTools tour (Console/Network/Application/Elements) | ☑ |
 | 8 | Clean coding: globals, `var`/`let`/`const`, code smells | ☑ |
-| 9 | Refactor nested Promises to `async`/`await` | ☐ |
+| 9 | Refactor nested Promises to `async`/`await` | ☑ |
 | 10 | Refactor to arrow functions | ☑ |
 
 A demo only counts as "Ready" once **every** task and question checkbox inside it (below) is

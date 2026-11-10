@@ -1,0 +1,27 @@
+{
+  "name": "remotion-investigation-portal",
+  "version": "0.1.0",
+  "description": "Project ReMotion Investigation Portal - a browser-based case-file investigation app, built as coursework for Advanced Web Engineering (CSDC).",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mihaiel/AWE.git"
+  },
+  "keywords": [],
+  "author": "Mihaiel",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/Mihaiel/AWE/issues"
+  },
+  "homepage": "https://github.com/Mihaiel/AWE#readme",
+  "dependencies": {
+    "date-fns": "^4.4.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}

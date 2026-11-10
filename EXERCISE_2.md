@@ -35,7 +35,7 @@ or answer on the spot, live.**
 
 | # | Demo | Ready? |
 |---|---|---|
-| 1 | Initialize the package manager & project metadata | ☐ |
+| 1 | Initialize the package manager & project metadata | ☑ |
 | 2 | Integrate Vite as the dev server | ☐ |
 | 3 | Production build & preview | ☐ |
 | 4 | `package.json` scripts: lint & format | ☐ |
@@ -55,19 +55,41 @@ ticked. The table above is just a fast overview, tick the boxes inside each demo
 
 **Tasks**
 
-- [ ] Choose **npm** or **pnpm** and record why you picked it over the other.
-- [ ] Initialize `package.json` for the project (name, version, description, etc. filled in properly).
-- [ ] Add a `.gitignore` entry for `node_modules` (and any other tool output you generate in later demos, e.g. `dist/`).
-- [ ] Install one real dependency (you'll add more in later demos) and show the resulting lockfile (`package-lock.json` or `pnpm-lock.yaml`) committed to the repo.
+- [x] Choose **npm** or **pnpm** and record why you picked it over the other.
+
+  Chose npm. I already know it and I'm familiar with it, that's the whole reason, not some deep technical comparison against pnpm. It comes bundled with Node, so there's nothing extra to install, and every command I'd need (`npm install`, `npm run ...`) is already muscle memory.
+
+- [x] Initialize `package.json` for the project (name, version, description, etc. filled in properly).
+
+  Ran `npm init -y` then filled in the fields that actually matter instead of leaving the generated defaults: `name` is `remotion-investigation-portal` (the folder name has spaces in it, which isn't a valid npm package name), `version` starts at `0.1.0` since this is mid-course work in progress, a real `description` pulled from what the app actually does, `"private": true` since this is never getting published to the npm registry, and `"type": "module"` since the app and any future build config are ESM throughout.
+
+- [x] Add a `.gitignore` entry for `node_modules` (and any other tool output you generate in later demos, e.g. `dist/`).
+
+  Added both `node_modules` and `dist` (pre-adding `dist` now since Demo 3 will need it). Found something while doing this: `.gitignore` had never actually been committed to the repo, and it listed itself as one of its own ignore patterns, which would have silently kept it out of `git add .` forever. Removed that line so it can actually be committed.
+
+- [x] Install one real dependency (you'll add more in later demos) and show the resulting lockfile (`package-lock.json` or `pnpm-lock.yaml`) committed to the repo.
+
+  Installed `date-fns`, a small, genuinely useful date-formatting library, picked because it actually lines up with the ad-hoc `formatDate()` helper already sitting in `utils.js`, not a throwaway pick just to satisfy this checkbox. `package-lock.json` got generated automatically and sits right next to `package.json`, both staged to commit together. Didn't import `date-fns` into any app code yet on purpose, the app still runs as a plain `<script type="module">` with no bundler, and a browser can't resolve `import { format } from "date-fns"` from `node_modules` without one, that only becomes possible once Vite exists starting Demo 2.
 
 **Questions** (depend on the tasks above)
 
-- [ ] What problem does a package manager actually solve that "download the library and put it in a folder yourself" doesn't? Be specific.
-- [ ] What's the difference between `dependencies` and `devDependencies` in `package.json`? Which
+- [x] What problem does a package manager actually solve that "download the library and put it in a folder yourself" doesn't? Be specific.
+
+  Manually downloading a library doesn't track *what version* you have, doesn't know what *that library itself* depends on (and those dependencies have their own dependencies, nested arbitrarily deep), and gives you no repeatable way to reconstruct the exact same set of files on a teammate's machine or in CI. `npm install date-fns` resolved one package but actually pulled in exactly what's declared in its own `package.json`, recorded the exact resolved version and integrity hash in the lockfile, and gives anyone who clones this repo a single command (`npm install`) that reproduces precisely the same `node_modules` tree. Doing that by hand for even a handful of real dependencies with their own sub-dependencies isn't realistically something you'd get right, or keep right as versions move.
+
+- [x] What's the difference between `dependencies` and `devDependencies` in `package.json`? Which
       category will Vite, your linter/formatter, and TypeScript belong to, and why?
-- [ ] What is a lockfile for, and what could go wrong for your teammates (or CI) if it weren't
+
+  `dependencies` are packages the shipped app actually needs at runtime, code that ends up genuinely executing for a real user. `devDependencies` are packages only needed while *building* or *working on* the project, never shipped to a user's browser. `date-fns`, the one dependency installed in this demo, is a `dependency` since I'm planning on actually calling its functions from code that runs in the browser. Vite, the linter, the formatter, and TypeScript are all going to be `devDependencies`, none of them ship to the browser, Vite and TypeScript's whole job is to produce the final plain JS/HTML/CSS *before* a user ever sees it, and the linter/formatter only ever run against source code on a developer's or CI's machine.
+
+- [x] What is a lockfile for, and what could go wrong for your teammates (or CI) if it weren't
       committed to the repo?
-- [ ] If you chose pnpm: what does it do differently from npm regarding how `node_modules` is laid out and how disk space/install time is shared across projects? If you chose npm: what would you gain or lose by switching to pnpm on a larger project?
+
+  `package.json`'s version ranges (`^4.4.0`) describe a *range* of acceptable versions, not one exact version, `package-lock.json` pins the *exact* version (and exact version of every nested dependency) that was actually resolved and installed. Without it committed, a teammate running `npm install` next week, or a CI machine running it next month, could get a newer version within that same range, one that behaves subtly differently or outright breaks something, with no way to know that's *why* it broke, since their `package.json` looks identical to mine. The lockfile is what makes "works on my machine" actually mean "works on every machine," by removing that ambiguity entirely.
+
+- [x] If you chose pnpm: what does it do differently from npm regarding how `node_modules` is laid out and how disk space/install time is shared across projects? If you chose npm: what would you gain or lose by switching to pnpm on a larger project?
+
+  I chose npm, so: pnpm keeps one single global content-addressable store of every package version on disk, and every project's `node_modules` is filled with hard links (or similar) pointing back into that shared store instead of each project getting its own full physical copy. On a larger project, or across several projects on the same machine, that means real disk space saved (a dependency installed in ten different projects only exists once on disk) and faster installs (nothing to actually copy, mostly just linking). What I'd lose by switching is exactly the "I already know this" comfort I picked npm for in the first place, pnpm's stricter default `node_modules` structure (no silent access to dependencies-of-dependencies, which npm allows by default) is actually a correctness *improvement*, but it can surface previously-hidden bugs in packages that were quietly relying on npm's flatter, more permissive layout.
 
 ---
 

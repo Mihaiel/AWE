@@ -100,3 +100,17 @@ Converted three standalone functions to arrows: `statCardHTML` and `optionHTML` 
 Deliberately left `handleEvidenceListClick` in `evidence.js` as a plain `function`, since it's attached by reference (`addEventListener("click", handleEvidenceListClick)`, not an inline closure) and converting it would permanently rule out ever using `this`/`event.currentTarget` inside it the idiomatic way, even though it doesn't need that right now.
 
 Checked `arguments` usage across the whole codebase while answering one of the questions, grep turns up zero real uses anywhere, only the word showing up inside comments. Verified everything in the browser after converting: stat cards, dropdown options, timeline certainty badges, the evidence detail status/relevance selects, the hypothesis confidence slider, and bookmark clicking (the one function I didn't touch) all still work exactly as before.
+
+## Exercise 2
+
+### Demo 1 — Initialize the package manager & project metadata
+
+Chose npm over pnpm, mainly because I already know it well and it's what I'm used to working with day to day, not because I did a deep pnpm comparison. Ran `npm init -y` then filled in the fields that mattered by hand: real `name` (`remotion-investigation-portal`, not the folder name with spaces), `version` starting at `0.1.0` since this is still very much in progress, a real `description`, `private: true` since this is never getting published to the npm registry, and `"type": "module"` since the whole project is ESM already and any build-tool config files I add later will be too.
+
+Added `node_modules` and `dist` to `.gitignore`. Turned out `.gitignore` itself had never actually been committed to this repo at all, it existed locally but was untracked, and worse, it listed itself (`.gitignore`) as one of its own ignore patterns, which meant `git add .` would never have picked it up even if someone tried. Removed that self-referential line so the file can actually be committed and reviewed, which is the whole point of this task.
+
+`npm install --save-dev esbuild`
+
+Installed `date-fns` as the one real dependency, it's a small, genuinely useful date-formatting library that lines up with the ad-hoc `formatDate()` helper already in `utils.js`, rather than something random just to tick the box. Didn't wire it into `utils.js` yet though: the app still loads as plain `<script type="module">` straight in the browser with no bundler, and a browser can't resolve a bare specifier like `import { format } from "date-fns"` without one, that only becomes possible once Vite is wired up in Demo 2. `package-lock.json` got generated automatically by the install and is committed alongside `package.json`.
+
+Also `esbuild` since I use it for my own website to minify the files and bundle them up :)
