@@ -36,7 +36,7 @@ or answer on the spot, live.**
 | # | Demo | Ready? |
 |---|---|---|
 | 1 | Initialize the package manager & project metadata | ☑ |
-| 2 | Integrate Vite as the dev server | ☐ |
+| 2 | Integrate Vite as the dev server | ☑ |
 | 3 | Production build & preview | ☐ |
 | 4 | `package.json` scripts: lint & format | ☐ |
 | 5 | TypeScript setup & first conversions | ☐ |
@@ -100,15 +100,40 @@ ticked. The table above is just a fast overview, tick the boxes inside each demo
 
 **Tasks**
 
-- [ ] Install Vite and configure it for this project (restructure files if needed so Vite can find `index.html`/your modules/the `data/` and `assets/` folders correctly).
-- [ ] Get `vite`'s dev server running the app with the same functionality it had before. Verify every view still works, not just that the page loads.
-- [ ] Trigger Hot Module Replacement at least once: change something in the running app's source and observe the update happen without a full page reload.
+- [x] Install Vite and configure it for this project (restructure files if needed so Vite can find `index.html`/your modules/the `data/` and `assets/` folders correctly).
+
+  Installed Vite as a devDependency (`npm install --save-dev vite`). `index.html`, `js/`, and `styles.css` needed no changes at all, they were already at the project root using relative paths (Vite default settings). `data/` and `assets/` did need to move though, both get reached by a plain runtime URL (`fetch("data/evidence.json")`, `<img src="assets/logo/logo.svg">`), not by an `import`, and Vite only serves (and later copies into `dist/`) files like that as-is if they live under `public/`. 
+  
+  The recommendation was to move both with `git mv` so the history stays a rename instead of a delete+add, into `public/data/` and `public/assets/`.
+
+- [x] Get `vite`'s dev server running the app with the same functionality it had before. Verify every view still works, not just that the page loads.
+
+  Added a `"dev": "vite"` script which can be ran with `npm run dev`.
+  
+   Checked the Network tab first, `/assets/logo/logo.svg` and all five `/data/*.json` files came back 200 straight from `public/`, confirming the restructure actually worked and not just that the page loaded. Then clicked through all five views.
+   
+   Dashboard (stats + recent panels), Evidence (list, a detail view, editing its status select), People & Locations (both tabs, including the portrait images), Timeline, and Workspace (bookmarks/notes/hypothesis form), all identical to how they worked on the plain static server.
+
+- [x] Trigger Hot Module Replacement at least once: change something in the running app's source and observe the update happen without a full page reload.
+
+  Typed a search term into the Evidence search box first, so I'd have some obvious in-memory state to watch. Edited `styles.css` (changed the header's background to a solid color) while the dev server was running: the header color changed instantly, and the search box still had my typed text in it, filters still applied, nav still on Evidence. Confirmed in the console too: `[vite] css hot updated: /styles.css`, no new `connecting...`/`connected.` pair, meaning no reload happened at all. Reverted the CSS change right after.
 
 **Questions** (depend on the tasks above)
 
-- [ ] What is the difference between how you used to run this app (a plain static file server) and running it through Vite's dev server? Name at least one thing Vite's dev server does that a plain static server doesn't.
-- [ ] What is Hot Module Replacement, and what specifically did you observe happen (and *not* happen, e.g. to app state) when you triggered it?
-- [ ] Why does an app already split into ES modules (Exercise 1) integrate naturally with a tool like Vite, compared to the original single-`<script>` version?
+- [x] What is the difference between how you used to run this app (a plain static file server) and running it through Vite's dev server? Name at least one thing Vite's dev server does that a plain static server doesn't.
+
+  A plain static server (`python -m http.server`, or the `http.server` one I'd been using throughout Exercise 1) does exactly one thing: it reads a file off disk and sends its bytes back, unmodified, for whatever path you request. 
+  
+  Vite's dev server does that too for anything under `public/`, but for everything else it's actually running a transform pipeline, it injects a small HMR client script (Hot module replacement) into `index.html` on the fly, serves the JS/CSS through its own module-aware middleware instead of handing back the literal file, and watches your source files so it can push updates to the browser over a WebSocket the instant something changes. This doesn't exist in a plain static server which would need refreshes.
+
+- [x] What is Hot Module Replacement, and what specifically did you observe happen (and *not* happen, e.g. to app state) when you triggered it?
+
+  HMR is Vite's dev server pushing just the changed component to the already-running page over that WebSocket connection, and swapping it in place, instead of reloading the whole page from scratch. What I actually observed: editing `styles.css` hot-swapped the stylesheet with the typed search text, the active filters, and the current view all still intact, nothing about the running app's JS state was touched. I tried with JS as well but this didn't work and after a quick search that's how it's supossed to be.
+
+
+- [x] Why does an app already split into ES modules (Exercise 1) integrate naturally with a tool like Vite, compared to the original single-`<script>` version?
+
+  Vite's entire dev-server model is built around the browser's native ES module loader, it serves your actual `import`/`export` source files directly (through its transform middleware) and lets the browser resolve the `import` graph itself, rather than needing to bundle everything into one file before anything can run. The original single 1085-line `app.js` from before Exercise 1 had no `import`/`export` statements at all, there was no module graph for Vite to even hook into, it would've just been one opaque script Vite could serve but couldn't meaningfully apply per-module HMR to. Because Exercise 1 already split this into eleven real ES modules with explicit imports between them, Vite could slot in underneath with zero restructuring of the JS itself, each file is already its own addressable module.
 
 ---
 
