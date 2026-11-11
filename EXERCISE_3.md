@@ -45,7 +45,7 @@ ticked — the table above is just a fast overview, tick the boxes inside each d
 
 - [x] Give a concise explanation of how web applications evolved over the years and place the app from the exercises on the timeline. Justify where you put it.
 
-      Web apps went: static HTML pages (90s, full reload every click) → server-generated dynamic pages (PHP/ASP, still full reloads) → AJAX/jQuery pages that fetched data and patched parts of the DOM without reloading (mid-2000s) → full SPA frameworks that moved all rendering/state/routing to the client (React/Angular/Vue, 2010s+). This app sits right in that AJAX/jQuery stage: it fetches JSON and hand-rolls hash routing/DOM updates with no framework, exactly the pattern SPA frameworks were later built to formalize.
+      Web apps went: static HTML pages (90s, full reload every click) -> server-generated dynamic pages (PHP/ASP, still full reloads) → AJAX/jQuery pages that fetched data and patched parts of the DOM without reloading (mid-2000s) -> full SPA frameworks that moved all rendering/state/routing to the client (React/Angular/Vue, 2010s+). This app sits right in that AJAX/jQuery stage: it fetches JSON and hand-rolls hash routing/DOM updates with no framework, exactly the pattern SPA frameworks were later built to formalize.
 
 **Questions** (depend on the tasks above)
 
@@ -63,14 +63,23 @@ ticked — the table above is just a fast overview, tick the boxes inside each d
 
 **Tasks**
 
-- [ ] Present a short comparison table for Server-Side Rendering and Client-Side Rendering. Explain what the server sends on first request, what the browser has to do before the user sees content, and what happens on subsequent navigation.
-- [ ] Pick one real, publicly known website and argue whether it's (primarily) SSR or CSR, using
-observable evidence (view source, network tab, etc.).
+- [x] Present a short comparison table for Server-Side Rendering and Client-Side Rendering. Explain what the server sends on first request, what the browser has to do before the user sees content, and what happens on subsequent navigation.
+
+      With SSR, the server sends a fully rendered HTML page containing the actual content, so the browser can display it almost immediately. With CSR the browser first loads an almost-empty HTML shell and JavaScript bundle, then fetches the data and renders the content.
+
+- [x] Pick one real, publicly known website and argue whether it's (primarily) SSR or CSR, using observable evidence (view source, network tab, etc.).
+
+      Wikipedia. `curl -s https://de.wikipedia.org/wiki/Hauptkomponentenanalyse` (no JS execution at all) already returns the full article text in the raw HTML.
 
 **Questions** (depend on the tasks above)
 
-- [ ] Explain why this exercise application is SSR or CSR and why. Walk through, step by step, what happens between the browser requesting the page and the Dashboard actually being visible.
-- [ ] Name one real cost of what the architecture pays for that choice (think about what a user with JavaScript disabled, or a slow connection, or a search engine crawler would see) and why.
+- [x] Explain why this exercise application is SSR or CSR and why. Walk through, step by step, what happens between the browser requesting the page and the Dashboard actually being visible.
+
+      CSR. In index.html:137's `#dashboardContent` div is literally empty in the raw markup (just a comment, "rendered by js/views/dashboard.js"). Step by step: 1) server sends that near-empty `index.html` + the JS bundle, 2) the browser downloads and runs the bundle, 3) `dataLoader.ts` fetches `data/*.json`, 4) once that resolves, `renderDashboard()` builds the actual HTML and injects it. The Dashboard is only visible after all four of those steps, not after step 1.
+
+- [x] Name one real cost of what the architecture pays for that choice (think about what a user with JavaScript disabled, or a slow connection, or a search engine crawler would see) and why.
+
+      A user with JavaScript disabled, or a search engine crawler that doesn't execute JS, sees a blank page, no case summary, no evidence, nothing, because every bit of real content only exists after client-side JS runs and fetches it.
 
 ---
 
