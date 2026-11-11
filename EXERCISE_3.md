@@ -151,15 +151,30 @@ ticked — the table above is just a fast overview, tick the boxes inside each d
 
 **Tasks**
 
-- [ ] Read enough of the React docs (or equivalent) to write, from scratch, a single tiny component (it can live in a throwaway sandbox, not necessarily this project yet) that renders a piece of static data as JSX. No state, no props even, just to prove you can write and reason about JSX.
-- [ ] Identify, in your own words, what "component" means in React, and how it differs from a plain JavaScript function that happens to return an HTML string (which is essentially what several functions in the old `app.js` did, e.g. `renderEvidenceCardHTML()`).
+- [x] Read enough of the React docs (or equivalent) to write, from scratch, a single tiny component (it can live in a throwaway sandbox, not necessarily this project yet) that renders a piece of static data as JSX. No state, no props even, just to prove you can write and reason about JSX.
+
+      ```tsx
+      ```
+
+- [x] Identify, in your own words, what "component" means in React, and how it differs from a plain JavaScript function that happens to return an HTML string (which is essentially what several functions in the old `app.js` did, e.g. `renderEvidenceCardHTML()`).
+
+      A component is a function whose return value React itself understands as "a description of UI," React decides when to call it, turns what it returns into real DOM, and re-calls it to figure out what changed. `renderEvidenceCardHTML()` just returns a plain string, nothing knows it's UI until something else explicitly shoves it into `innerHTML`, no framework is tracking it, deciding when to rerun it, or diffing its output.
 
 **Questions** (depend on the tasks above)
 
-- [ ] What is JSX, actually? What does it compile to?
-- [ ] Compare your tiny component to the old `renderEvidenceCardHTML(ev)` function (string concatenation returning an HTML string). What is fundamentally different about how each one's output becomes real DOM?
-- [ ] What does it mean that "components are just functions" in React? What would break if a
-component's function body had a side effect (e.g. mutated a global variable) every time it rendered?
+- [x] What is JSX, actually? What does it compile to?
+
+      JSX is markdown that looks like HTML and is used as a declarative approach to state how the UI should look like through code. Similar to the previous course which we had, where kotlin switched from the xml I think to the declarative approach.
+
+- [x] Compare your tiny component to the old `renderEvidenceCardHTML(ev)` function (string concatenation returning an HTML string). What is fundamentally different about how each one's output becomes real DOM?
+
+      `renderEvidenceCardHTML()` ([js/views/evidence.ts](js/views/evidence.ts)) returns a raw string, it only becomes DOM because something later calls `container.innerHTML = html`, which the browser's HTML parser turns into real nodes all at once, destructively, no memory of what was there before.
+      
+      My component returns a tree of React element objects. React's renderer walks that tree, diffs it against the previous one, and only touches the specific real DOM nodes that actually changed, nothing is ever reparsed as HTML text.
+
+- [x] What does it mean that "components are just functions" in React? What would break if a component's function body had a side effect (e.g. mutated a global variable) every time it rendered?
+
+      It means a component genuinely is just a function, React calls it and uses whatever it returns. React relies on that call being pure/predictable, it may call a component's body more than once for the same render (e.g. Strict Mode's intentional double-invoke in development) without that being visible anywhere. A side effect in the body (mutating a global) would fire an unpredictable number of times and make two renders with identical props produce different results depending on unrelated state.
 
 ---
 
