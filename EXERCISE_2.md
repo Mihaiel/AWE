@@ -355,7 +355,7 @@ ticked. The table above is just a fast overview, tick the boxes inside each demo
       3. `git add js/utils.ts`, `git commit -m "Demo 8: deliberately break lint"`, `git push`.
       4. Check the repo's Actions tab: this run fails on the Lint step.
 
-- [ ] Fix it and push again, and show the same workflow **passing**.
+- [x] Fix it and push again, and show the same workflow **passing**.
 
       1. Remove the `demoLintFailure` line from [js/utils.ts](js/utils.ts).
       2. `git add js/utils.ts`, `git commit -m "Demo 8: fix lint failure"`, `git push`.
