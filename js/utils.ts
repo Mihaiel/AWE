@@ -6,7 +6,6 @@
 import { state } from "./state.js";
 import type { Evidence, Person, Location } from "./types.js";
 
-
 // Rewritten from an indexed for-loop to .find(), Exercise 2 Demo 5:
 // with noUncheckedIndexedAccess on, state.allEvidence[i] types as
 // `T | undefined` (TS can't prove i is in bounds), which the old
