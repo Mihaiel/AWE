@@ -230,14 +230,75 @@ ticked — the table above is just a fast overview, tick the boxes inside each d
 
 **Tasks**
 
-- [ ] Design and diagram a proposed component hierarchy for the **entire application**, not just the part you're building this exercise. E.g. pages (one per current view) and the reusable components you expect to extract (cards, badges, buttons, form controls, etc.), even though most of them won't be built until Exercises 4 and 5.
-- [ ] For at least 5 components in your diagram, briefly note what data/props each one would need and where that data comes from.
+- [x] Design and diagram a proposed component hierarchy for the **entire application**, not just the part you're building this exercise. E.g. pages (one per current view) and the reusable components you expect to extract (cards, badges, buttons, form controls, etc.), even though most of them won't be built until Exercises 4 and 5.
+
+      I think in the Skriptum it was mentioned to split the project into feature components and these would then have presentational components.
+
+      ```t
+      App
+      ├── Header (branding + nav bar, one NavButton per view)
+      ├── DashboardPage
+      │   ├── CaseSummaryCard
+      │   ├── StatCard (x5: evidence/people/locations/bookmarked/reviewed counts)
+      │   ├── ReviewProgressBar
+      │   ├── RecentList (x2: recent evidence, recent timeline)
+      │   │   └── MiniListItem
+      │   └── QuickLinkCard (x4, one per other view)
+      ├── EvidencePage
+      │   ├── FilterBar (search + type/person/location/status/relevance + sort)
+      │   │   └── SelectFilter (xN, one per dropdown)
+      │   ├── EvidenceList
+      │   │   └── EvidenceCard
+      │   │       ├── BookmarkButton
+      │   │       ├── Badge (xN: critical/status/relevance)
+      │   │       └── TagChip (xN)
+      │   └── EvidenceDetail (Badge, TagChip reused; + RelatedPeopleList, RelatedLocationsList, StatusSelect, RelevanceSelect, NoteEditor)
+      ├── PeoplePage
+      │   ├── Tabs (People/Locations)
+      │   ├── PersonCard (xN)
+      │   └── LocationCard (xN)
+      ├── TimelinePage
+      │   ├── FilterBar (reused shape from EvidencePage)
+      │   ├── TimelineEvent (xN)
+      │   │   └── Badge (certainty, reused)
+      │   └── EvidenceQuickViewModal (built on a generic Modal)
+      └── WorkspacePage
+          ├── BookmarksList / NotesList
+          │   └── MiniListItem (reused from Dashboard)
+          └── HypothesisForm (SelectFilter reused, ConfidenceSlider, text areas)
+      ```
+
+- [x] For at least 5 components in your diagram, briefly note what data/props each one would need and where that data comes from.
+
+      `Badge`: props `kind` ("status"/"relevance"/"certainty"/"critical") and `value`; data is whichever field is being shown (`ev.status`, `ev.relevance`, `timelineEvent.certainty`). Replaces [js/utils.ts](js/utils.ts)'s `getStatusBadgeClass`/`getRelevanceBadgeClass`/`certaintyBadgeClass`.
+
+      `EvidenceCard`: props one `Evidence` object + `isBookmarked`; data from `state.filteredEvidence` and `state.bookmarks`. Replaces `renderEvidenceCardHTML()` in [js/views/evidence.ts](js/views/evidence.ts).
+
+      `MiniListItem`: props `primaryText`/`secondaryText`/optional `badge`; reused by Dashboard's two recent-items lists and Workspace's bookmarks/notes lists, all four currently build the exact same `mini-list-item` markup by hand in [js/views/dashboard.ts](js/views/dashboard.ts) and [js/views/workspace.ts](js/views/workspace.ts).
+
+      `SelectFilter`: props `label`/`value`/`onChange`/`options`; data is either a static list (status/relevance) or a derived one (distinct evidence types, `state.allPeople`, `state.allLocations`). Replaces the `optionHTML()` calls repeated across [js/views/evidence.ts](js/views/evidence.ts), [js/views/timeline.ts](js/views/timeline.ts), and [js/views/workspace.ts](js/views/workspace.ts).
+
+      `CaseSummaryCard`: props `title`/`status`/`summary`; data straight from `state.caseData`.
 
 **Questions** (depend on the tasks above)
 
-- [ ] What criteria did you use to decide something should be its own component versus staying inline inside a bigger one?
-- [ ] Pick one component in your diagram that appears in more than one place in the app. What made you extract it instead of duplicating its markup, and how does that compare to how the original vanilla app handled (or didn't handle) that same duplication?
-- [ ] Your diagram includes components you won't build until later exercises. Why is it useful to design the whole hierarchy now rather than only diagramming what you're about to build?
+- [x] What criteria did you use to decide something should be its own component versus staying inline inside a bigger one?
+
+      Extracted when the exact same markup shape shows up in more than one place (`Badge`, `TagChip`, `MiniListItem`, `SelectFilter`), or when a piece represents its own distinct domain entity with its own data shape (`EvidenceCard`, `PersonCard`, each `Page`). Kept inline when something is simple, single-use, and tightly coupled to its parent's own layout, e.g. `CaseSummaryCard`'s two lines of text don't need to be their own component.
+
+- [x] Pick one component in your diagram that appears in more than one place in the app. What made you extract it instead of duplicating its markup, and how does that compare to how the original vanilla app handled (or didn't handle) that same duplication?
+
+      `Badge`, used in `EvidenceCard`, `EvidenceDetail`, and `TimelineEvent`. The original vanilla app already partially recognised this duplication, [js/utils.ts](js/utils.ts)'s `getStatusBadgeClass()`/`getRelevanceBadgeClass()`/`certaintyBadgeClass()` share the class-picking logic, but every call site still hand-writes its own `<span class="badge ...">` wrapper around that result. 
+      
+      A React `Badge` component goes one step further and owns the whole rendered unit, call sites just do `<Badge kind="status" value={ev.status} />` instead of still string-concatenating the markup themselves everywhere.
+
+- [x] Your diagram includes components you won't build until later exercises. Why is it useful to design the whole hierarchy now rather than only diagramming what you're about to build?
+
+      Because it allows us to plan better and it scales as the project grows.
+
+      Designing only around the one view being migrated this exercise (Dashboard) risks shaping components too narrowly around just its needs, e.g. building `Badge` with only `status`/`relevance` in mind, then being surprised later that Timeline needs a `certainty` variant too, forcing a rework. 
+      
+      Looking at all 5 views now means the genuinely reused pieces (`Badge`, `TagChip`, `MiniListItem`, `SelectFilter`) get designed general enough from the start to cover every real use case that already exists in this app, not just the first one built.
 
 ---
 
