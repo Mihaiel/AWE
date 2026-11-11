@@ -416,7 +416,7 @@ ticked. The table above is just a fast overview, tick the boxes inside each demo
 
 - [x] What would you need to change in this workflow if you were deploying to a different static host instead (e.g. Netlify, Vercel, a plain server over SFTP)? What would stay the same?
 
-      The `build` job (checkout, `npm ci`, `lint`, `build`) stays exactly the same, it produces the same `dist/` regardless of where it ends up. Only the `deploy` job's publish step would change, swap `actions/upload-pages-artifact`/`actions/deploy-pages` for that host's own action (or a generic `rsync`/`scp` step over SFTP), and the `permissions`/`environment` blocks are GitHub-Pages-specific, they'd be replaced by whatever auth that host needs (an API token as a repo secret, most commonly).
+      The `build` job (checkout, `npm ci`, `lint`, `build`) stays exactly the same, it produces the same `dist/` regardless of where it ends up. Only the `deploy` job's publish step would change, swap `actions/upload-pages-artifact`/`actions/deploy-pages` for that host's own action (or a generic `rsync`/`scp` step over SFTP), and the `permissions` block is GitHub-Pages-specific, it'd be replaced by whatever auth that host needs (an API token as a repo secret, most commonly).
 
 ---
 
@@ -425,14 +425,37 @@ ticked. The table above is just a fast overview, tick the boxes inside each demo
 **Tasks**
 
 - [ ] Deliberately commit a real TypeScript error (or a lint failure) that should block deployment, push it, and show the deploy workflow failing *before* it reaches the deploy step.
-- [ ] Identify exactly what permissions and/or secrets your deploy workflow needs to publish to GitHub Pages, and show where they're configured (repository settings, the `permissions:` key in the workflow file, etc.).
+
+      Verified locally first (reverted before committing, see js/state.ts): changed `currentPage: "dashboard"` to `currentPage: 123` and ran `npm run build`. Failed immediately at the `tsc --noEmit` stage with `error TS2322: Type 'number' is not assignable to type 'string'`, `vite build` never even ran. In `deploy.yml` this is the exact same `npm run build` call inside the `build` job, so pushing this for real to `main` will fail there, before the `deploy` job (which `needs: build`) ever starts.
+
+      1. Make that same one-line edit to js/state.ts
+      2. `git add js/state.ts`, `git commit -m "Demo 10: deliberately break the build"`, `git push` (while on `main`).
+      3. Check the Actions tab: the "Deploy to GitHub Pages" run fails in the `build` job; the `deploy` job never starts at all (shown as skipped).
+      4. Revert the edit, commit, push again, confirm it goes back to green.
+
+- [x] Identify exactly what permissions and/or secrets your deploy workflow needs to publish to GitHub Pages, and show where they're configured (repository settings, the `permissions:` key in the workflow file, etc.).
+
+      No secrets at all, `grep -rn "secrets\."` across both workflow files finds nothing. Just the `permissions:` block in [.github/workflows/deploy.yml](.github/workflows/deploy.yml): `contents: read` (checkout), `pages: write` (lets `deploy-pages` actually publish), `id-token: write` (lets it mint a short-lived OIDC token to authenticate that publish, instead of a stored secret). `ci.yml` declares no `permissions:` block at all, it only reads the repo, so the default token permissions are already enough. The other piece, outside the workflow file entirely: repository **Settings -> Pages -> Build and deployment -> Source**, set to "GitHub Actions" (a one-time, manual repo setting, not a workflow permission).
+
 - [ ] Open the run history for both workflows and be ready to read a failed run's logs live and explain, to someone unfamiliar with it, what failed and why.
+
+      Do this live off the deliberate-failure run from the first task above: open it in the Actions tab, click the failed `build` job, point at the red `tsc --noEmit` step and read the `TS2322` line directly, then point at the `deploy` job showing as skipped and explain that's `needs: build` doing its job, not a second failure.
 
 **Questions** (depend on the tasks above)
 
-- [ ] When your build step fails, does the previously-deployed version of the app stay live, get taken down, or something else? Is that the behavior you want, and why?
-- [ ] What GitHub Actions permission(s) or secret(s) does your deploy workflow actually need, and where did you grant/store them? What's the security risk of over-granting permissions here?
-- [ ] What's the difference between triggering a workflow `on: push`, `on: pull_request`, and `on: workflow_dispatch`? Which did you use for the development workflow (Demo 8) and which for the deployment workflow (Demo 9), and why is that pairing the right one?
+- [x] When your build step fails, does the previously-deployed version of the app stay live, get taken down, or something else? Is that the behavior you want, and why?
+
+      Stays live, unchanged. `deploy-pages` only runs inside the `deploy` job, which never starts if `build` fails (`needs: build`), so no new deployment is ever created, GitHub Pages just keeps serving whatever the last *successful* deployment was. That's exactly the behavior wanted, a broken commit should never be able to take the live site down or replace it with a half-built version, it should just fail to replace what's already there until it's fixed.
+
+- [x] What GitHub Actions permission(s) or secret(s) does your deploy workflow actually need, and where did you grant/store them? What's the security risk of over-granting permissions here?
+
+      Covered above: `contents: read`, `pages: write`, `id-token: write`, no secrets, all three granted in `deploy.yml`'s own `permissions:` block. The risk of over-granting (e.g. leaving the default broader token scope, or adding `contents: write` this workflow never uses) is that the same token is available to every step in the job, so a compromised or buggy dependency pulled in anywhere in that run (an npm package, an action version) would inherit whatever scope the token has, not just what `deploy-pages` itself needs. Scoping `permissions:` down to exactly these three is what limits the blast radius of that risk.
+
+- [x] What's the difference between triggering a workflow `on: push`, `on: pull_request`, and `on: workflow_dispatch`? Which did you use for the development workflow (Demo 8) and which for the deployment workflow (Demo 9), and why is that pairing the right one?
+
+      `push` fires automatically whenever a commit lands on a matching branch. `pull_request` fires when a PR is opened/updated, and runs against the proposed merge result, a check reviewers see on the PR itself, before anything merges. `workflow_dispatch` is a manual button in the Actions tab, no code change needed at all.
+
+      `ci.yml` uses both `push` and `pull_request`, no branch restriction, so contributors see lint/format results on their own branch as they work, *and* reviewers see the same check on the PR before approving. `deploy.yml` uses only `push` to `main`, deliberately no `pull_request` (an unapproved PR's code should never reach the live site) and no `workflow_dispatch` (nothing here needs an on-demand redeploy independent of a real commit). That pairing is right because CI's job is "catch problems as early and as often as possible," deployment's job is "only ever publish what's actually been merged."
 
 ---
 

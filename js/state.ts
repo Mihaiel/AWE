@@ -42,7 +42,7 @@ export const state: AppState = {
   allEvidence: [],
   filteredEvidence: [],
   bookmarks: [],
-  currentPage: "dashboard",
+  currentPage: 123,
 
   allPeople: [],
   allLocations: [],
