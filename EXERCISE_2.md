@@ -424,20 +424,15 @@ ticked. The table above is just a fast overview, tick the boxes inside each demo
 
 **Tasks**
 
-- [ ] Deliberately commit a real TypeScript error (or a lint failure) that should block deployment, push it, and show the deploy workflow failing *before* it reaches the deploy step.
+- [x] Deliberately commit a real TypeScript error (or a lint failure) that should block deployment, push it, and show the deploy workflow failing *before* it reaches the deploy step.
 
-      Verified locally first (reverted before committing, see js/state.ts): changed `currentPage: "dashboard"` to `currentPage: 123` and ran `npm run build`. Failed immediately at the `tsc --noEmit` stage with `error TS2322: Type 'number' is not assignable to type 'string'`, `vite build` never even ran. In `deploy.yml` this is the exact same `npm run build` call inside the `build` job, so pushing this for real to `main` will fail there, before the `deploy` job (which `needs: build`) ever starts.
-
-      1. Make that same one-line edit to js/state.ts
-      2. `git add js/state.ts`, `git commit -m "Demo 10: deliberately break the build"`, `git push` (while on `main`).
-      3. Check the Actions tab: the "Deploy to GitHub Pages" run fails in the `build` job; the `deploy` job never starts at all (shown as skipped).
-      4. Revert the edit, commit, push again, confirm it goes back to green.
+      Verified locally first (reverted before committing): changed [js/state.ts](js/state.ts)'s `currentPage: "dashboard"` to `currentPage: 123` and ran `npm run build`. Failed immediately at the `tsc --noEmit` stage with `error TS2322: Type 'number' is not assignable to type 'string'`, `vite build` never even ran. Then did it for real: committed that exact change on `main` and pushed. The "Deploy to GitHub Pages" run failed in the `build` job on that same `tsc` error, and the `deploy` job showed as **skipped**, confirming `needs: build` stopped it before it could reach the publish step. Reverted `js/state.ts`, committed, pushed again, confirmed the run went back to green and redeployed.
 
 - [x] Identify exactly what permissions and/or secrets your deploy workflow needs to publish to GitHub Pages, and show where they're configured (repository settings, the `permissions:` key in the workflow file, etc.).
 
       No secrets at all, `grep -rn "secrets\."` across both workflow files finds nothing. Just the `permissions:` block in [.github/workflows/deploy.yml](.github/workflows/deploy.yml): `contents: read` (checkout), `pages: write` (lets `deploy-pages` actually publish), `id-token: write` (lets it mint a short-lived OIDC token to authenticate that publish, instead of a stored secret). `ci.yml` declares no `permissions:` block at all, it only reads the repo, so the default token permissions are already enough. The other piece, outside the workflow file entirely: repository **Settings -> Pages -> Build and deployment -> Source**, set to "GitHub Actions" (a one-time, manual repo setting, not a workflow permission).
 
-- [ ] Open the run history for both workflows and be ready to read a failed run's logs live and explain, to someone unfamiliar with it, what failed and why.
+- [x] Open the run history for both workflows and be ready to read a failed run's logs live and explain, to someone unfamiliar with it, what failed and why.
 
       Do this live off the deliberate-failure run from the first task above: open it in the Actions tab, click the failed `build` job, point at the red `tsc --noEmit` step and read the `TS2322` line directly, then point at the `deploy` job showing as skipped and explain that's `needs: build` doing its job, not a second failure.
 
@@ -449,7 +444,10 @@ ticked. The table above is just a fast overview, tick the boxes inside each demo
 
 - [x] What GitHub Actions permission(s) or secret(s) does your deploy workflow actually need, and where did you grant/store them? What's the security risk of over-granting permissions here?
 
-      Covered above: `contents: read`, `pages: write`, `id-token: write`, no secrets, all three granted in `deploy.yml`'s own `permissions:` block. The risk of over-granting (e.g. leaving the default broader token scope, or adding `contents: write` this workflow never uses) is that the same token is available to every step in the job, so a compromised or buggy dependency pulled in anywhere in that run (an npm package, an action version) would inherit whatever scope the token has, not just what `deploy-pages` itself needs. Scoping `permissions:` down to exactly these three is what limits the blast radius of that risk.
+      Covered above: `contents: read`, `pages: write`, `id-token: write`, no secrets, all three granted in `deploy.yml`'s own `permissions:` block. 
+      
+      When we overgrant, we risk the possibility of a dependency being compromised (which happens a lot nowadays) and allows
+      the dependency with a wider access over our repository.
 
 - [x] What's the difference between triggering a workflow `on: push`, `on: pull_request`, and `on: workflow_dispatch`? Which did you use for the development workflow (Demo 8) and which for the deployment workflow (Demo 9), and why is that pairing the right one?
 
