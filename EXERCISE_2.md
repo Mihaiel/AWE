@@ -387,8 +387,16 @@ ticked. The table above is just a fast overview, tick the boxes inside each demo
       Now I added the deploy.yml, which actually runs the building step and ships the app.
       Since we want to publish the app, and we need to publish only the /dist, I made sure to include inside Vite -> vite.config.js the base of our app, which is now /AWE.
 
+      For this, I have to be on the main and push there.
+
+      Also https://github.com/Mihaiel/AWE/settings/pages -> here it needs to be enabled.
+
+      This also produced the artifact under github pages.
+
 
       Added `.github/workflows/deploy.yml`. Triggers on `push` to `main` only (not every branch, like Demo 8's CI workflow), a deployment should only happen once a change has actually merged, not on every work-in-progress push to a demo branch. Two jobs: `build` (checkout, Node 22, `npm ci`, `npm run lint`, `npm run build`, then `actions/upload-pages-artifact@v3` uploads `dist/`), then `deploy` (`actions/deploy-pages@v4` publishes that artifact). Also set `base: "/AWE/"` in `vite.config.js`, GitHub Pages serves this repo under `/AWE/`, not the domain root, so the built `index.html`'s own `<script>`/`<link>` tags need that prefix or they'd 404 once deployed.
+
+      https://mihaiel.github.io/AWE/ -> After pushing and sucessfully running the deployment, the page is now hosted and available. It always takes the latest artifact.
 
 - [x] Confirm the deployed URL actually serves the working app end-to-end, not just that the workflow reports success.
 
