@@ -13,6 +13,14 @@
 // calls to data/*.json or the public/assets/ image reference in
 // index.html, both stay plain relative paths Vite never touches, and
 // the browser resolves those against the page's own URL regardless.
+//
+// Exercise 3, Demo 6: @vitejs/plugin-react is what actually transforms
+// JSX in .tsx files into plain JS (via esbuild/Babel under the hood) and
+// wires up React Fast Refresh for the dev server. Without this plugin,
+// Vite has no idea what to do with a `<div>` inside a .tsx file at all.
+import react from "@vitejs/plugin-react";
+
 export default {
   base: "/AWE/",
+  plugins: [react()],
 };

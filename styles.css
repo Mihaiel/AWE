@@ -842,3 +842,16 @@ a:focus-visible {
     display: block;
   }
 }
+
+/* Exercise 3, Demo 6: React entry point mount point. */
+#react-root.hidden {
+  display: none;
+}
+
+.react-shell-placeholder {
+  max-width: 900px;
+  margin: 24px auto;
+  padding: 16px 20px;
+  border: 2px dashed var(--color-accent);
+  border-radius: 8px;
+}

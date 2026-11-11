@@ -182,16 +182,47 @@ ticked — the table above is just a fast overview, tick the boxes inside each d
 
 **Tasks**
 
-- [ ] Add React and TypeScript support to the existing Vite project from Exercise 2 (the right Vite plugin, `tsx` support, React types).
-- [ ] Create a minimal entry point (e.g. a root `<App />` component mounted into the page) that
-renders *something* visible, without removing the working vanilla app yet.
-- [ ] Decide and document how the two versions coexist during the migration (e.g. a separate route/ flag to view the React version, or a full swap-over. Your call, but be ready to justify it).
+- [x] Add React and TypeScript support to the existing Vite project from Exercise 2 (the right Vite plugin, `tsx` support, React types).
+
+
+      npm install react react-dom
+
+      npm install --save-dev @vitejs/plugin-react @types/react @types/react-dom
+
+      Installed `react`/`react-dom` (dependencies) and `@vitejs/plugin-react`/`@types/react`/`@types/react-dom` (devDependencies). Added the plugin to [vite.config.js](vite.config.js), `"jsx": "react-jsx"` plus `**/*.tsx` in `include` to [tsconfig.json](tsconfig.json), and `**/*.tsx` to the matched files in [eslint.config.js](eslint.config.js).
+
+- [x] Create a minimal entry point (e.g. a root `<App />` component mounted into the page) that renders *something* visible, without removing the working vanilla app yet.
+
+      Added [js/react/App.tsx](js/react/App.tsx) (a placeholder component) and [js/react/main.tsx](js/react/main.tsx), mounted into a new `#react-root` div in [index.html](index.html).
+
+- [x] Decide and document how the two versions coexist during the migration (e.g. a separate route/flag to view the React version, or a full swap-over. Your call, but be ready to justify it).
+
+      A query flag: `#react-root` starts with a `hidden` class, and [js/react/main.tsx](js/react/main.tsx) only removes it and mounts `<App />` if the page URL has a `?react` flag. Default visits (`/`) are byte-for-byte the same working vanilla app as before; adding `?react` shows the React placeholder alongside it. See the last question below for why.
+
+      Refined afterward: a plain `?react` flag is public and guessable by anyone, not real access control, so it's combined with `import.meta.env.DEV` (`showReactShell = import.meta.env.DEV && ...has("react")`). Vite replaces `import.meta.env.DEV` with the literal `false` in a production build, so the whole block is dead-code-eliminated, confirmed by grepping the built `dist/assets/*.js` for the placeholder's own text ("Hello world", "react-shell-placeholder"), zero matches. So on the real deployed site, this code isn't shipped at all, not just hidden; the `?react` flag only ever does anything while running `npm run dev` locally.
 
 **Questions** (depend on the tasks above)
 
-- [ ] What did you actually have to install and configure to get JSX compiling through Vite? What is each piece responsible for?
-- [ ] How does your `<App />` component get from source code onto the actual page? Trace the path from your `.tsx` file to the DOM.
-- [ ] What decision did you make about how the vanilla and React versions coexist during migration, and why? What would go wrong with an opposite choice?
+- [x] What did you actually have to install and configure to get JSX compiling through Vite? What is each piece responsible for?
+
+      As explained in the Skriptum `@vitejs/plugin-react` does the actual JSX-to-JS transform during dev and build (Vite itself has no idea what a `<div>` means inside a `.tsx` file without it). `tsconfig.json`'s `"jsx": "react-jsx"` is a separate, parallel concern, it's what makes `tsc --noEmit` *type-check* JSX correctly (and skip requiring an explicit `import React` in every file), it doesn't compile anything itself.
+
+- [x] How does your `<App />` component get from source code onto the actual page? Trace the path from your `.tsx` file to the DOM.
+
+      Inside the web inspector, if we search for "react-root" or react in general, we can see that the files are there, which are the placeholder.  
+      Another way to do this is with the Network Debugging, we can see that it's loaded there.
+
+
+      `index.html` loads `js/react/main.tsx` as a module script -> Vite's plugin transforms its JSX into plain `createElement`-style calls -> `main.tsx` calls `createRoot(root).render(<App />)` -> React calls the `App` function, gets back a tree of React elements -> React's renderer turns that tree into real DOM nodes and inserts them into `#react-root`. Checked `?react`'s result directly in the browser: `#react-root`'s `innerHTML` is exactly the placeholder's real DOM.
+
+- [x] What decision did you make about how the vanilla and React versions coexist during migration, and why? What would go wrong with an opposite choice?
+
+      I added a placeholder for switching between the two versions of react so that I can test throughly.
+      js/react/main.tsx -> const showReactShell = new URLSearchParams(window.location.search).has("react");
+
+      Typing ?react at the end of the URL switches to the React view. (http://localhost:5173/AWE/?react)
+
+      After some thinking: a plain `?react` flag is public and guessable by anyone, not real access control, so it's combined with `import.meta.env.DEV` (`showReactShell = import.meta.env.DEV && ...has("react")`). Vite replaces `import.meta.env.DEV` with the literal `false` in a production build, so the whole block is dead-code-eliminated, confirmed by grepping the built `dist/assets/*.js` for the placeholder's own text ("Hello world", "react-shell-placeholder"), zero matches. So on the real deployed site, this code isn't shipped at all, not just hidden; the `?react` flag only ever does anything while running `npm run dev` locally.
 
 ---
 

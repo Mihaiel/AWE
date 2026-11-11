@@ -27,10 +27,15 @@
   },
   "homepage": "https://github.com/Mihaiel/AWE#readme",
   "dependencies": {
-    "date-fns": "^4.4.0"
+    "date-fns": "^4.4.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
     "esbuild": "^0.28.2",
     "eslint": "^9.39.5",
     "globals": "^17.14.0",

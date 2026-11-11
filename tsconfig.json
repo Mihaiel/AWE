@@ -33,8 +33,22 @@
     "skipLibCheck": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+
+    // Exercise 3, Demo 6: "react-jsx" means tsc expects Vite/esbuild to
+    // do the actual JSX-to-JS transform (same noEmit split as the rest
+    // of this config, tsc only checks types here), and it also means
+    // files don't need `import React from "react"` just to use JSX,
+    // the react-jsx runtime handles that automatically.
+    "jsx": "react-jsx",
+
+    // Exercise 3, Demo 6: without this, `import.meta.env.DEV` (used to
+    // keep the React placeholder out of production builds) doesn't
+    // typecheck, ImportMeta has no `env` property by default. Vite
+    // ships these ambient types itself, in node_modules/vite/client.d.ts,
+    // this just tells tsc to actually include them.
+    "types": ["vite/client"]
   },
-  "include": ["**/*.ts"],
+  "include": ["**/*.ts", "**/*.tsx"],
   "exclude": ["node_modules", "dist", "public"]
 }

@@ -11,7 +11,10 @@ export default [
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ["**/*.js", "**/*.ts"],
+    // Exercise 3, Demo 6: added **/*.tsx here too, same "File ignored
+    // because no matching configuration was supplied" problem Exercise 2
+    // Demo 8 already found for .ts files would otherwise repeat for .tsx.
+    files: ["**/*.js", "**/*.ts", "**/*.tsx"],
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "module",
