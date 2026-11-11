@@ -115,14 +115,35 @@ ticked — the table above is just a fast overview, tick the boxes inside each d
 
 **Tasks**
 
-- [ ] Diagram or illustrate live how navigation currently works in this app: what triggers a view change, what code runs, and what does *not* happen (that would happen in a classic multi-page site).
-- [ ] List every piece of state in the current app that would be lost on a full page reload, versus what's preserved (hint: check what's in `localStorage` versus what's only in memory).
+- [x] Diagram or illustrate live how navigation currently works in this app: what triggers a view change, what code runs, and what does *not* happen (that would happen in a classic multi-page site).
+
+      Click nav button -> `navigateTo(viewName)` ([js/router.ts:16](js/router.ts:16)) sets `window.location.hash` -> the `hashchange` event fires -> `handleHashChange()` ([js/router.ts:21](js/router.ts:21)) reads the hash, toggles `.active` on the matching `.view` section and nav button, and calls that view's render function (only on its first visit, tracked by `state.viewRendered`). 
+      
+      What does not happen: no request to the server, no full page reload, no `<script>` tags re-running, nothing lost from memory, the whole thing is one DOM already sitting in the browser, just a different `<section>` getting shown.
+
+- [x] List every piece of state in the current app that would be lost on a full page reload, versus what's preserved (hint: check what's in `localStorage` versus what's only in memory).
+
+      Lost (in-memory only): `allEvidence`/`allPeople`/`allLocations`/`allTimeline`/`caseData` ([js/state.ts](js/state.ts)), though they're trivially refetched from the same `data/*.json` on reload; and the `viewRendered` flags, harmlessly, each view's first-visit render just runs again.
+
+      Preserved: the current view, it lives in the URL's `#hash`, not in JS memory; and bookmarks (`remotion_bookmarks`), notes (`remotion_notes`), and the hypothesis draft (`remotion_hypothesis`), all three explicitly written to `localStorage` (localstorage.js)
+
+      Also lost: the current search term, filter dropdowns, and sort order in the Evidence view, these only ever live as live DOM form-field values, never saved anywhere.
 
 **Questions** (depend on the tasks above)
 
-- [ ] In a traditional multi-page app, where does "the current page's data" live between requests? Where does it live in this SPA instead, and what are the consequences of that difference (for good and for bad)?
-- [ ] This app currently implements routing by hand (`handleHashChange()`, a `switch`-like chain of `if`s, and manually toggling CSS classes). What is a router library actually responsible for that this hand-rolled version does *not* handle?
-- [ ] If the user hits the browser's back button right now, what happens in this app, and why?
+- [x] In a traditional multi-page app, where does "the current page's data" live between requests? Where does it live in this SPA instead, and what are the consequences of that difference (for good and for bad)?
+
+      In an MPA it lives in the HTML the server just sent for that one request, nothing carries over in JS memory between pages, each navigation tears down and rebuilds everything from scratch. Here it lives in one JS `state` object ([js/state.ts](js/state.ts)) that persists for the whole session. Good: instant navigation, no refetching, bookmarking in Evidence instantly shows up in Workspace with no round trip. Bad: a reload wipes all of it at once (not per-page), so anything not deliberately pushed to `localStorage` is just gone.
+
+- [x] This app currently implements routing by hand (`handleHashChange()`, a `switch`-like chain of `if`s, and manually toggling CSS classes). What is a router library actually responsible for that this hand-rolled version does *not* handle?
+
+      Parameterized/nested routes, this app has no URL for "evidence item E04's detail view" at all, `#evidence` always means the list, opening a specific item is pure in-memory state you can't deep-link, bookmark, or refresh into. A real router also handles 404/fallback routes declaratively, scroll restoration per route, and keeping multiple UI pieces (nav highlighting, breadcrumbs) in sync with one source of truth automatically, instead of two separate manual loops over `.view` sections and `.nav-btn` elements that have to be kept in sync by hand.
+
+- [x] If the user hits the browser's back button right now, what happens in this app, and why?
+
+      It switches back to the previous top-level view (Dashboard/Evidence/People/etc.) correctly. Setting `window.location.hash` always pushes a real browser-history entry, so back/forward naturally fires `hashchange` again and `handleHashChange()` re-runs. 
+      
+      What it can't do: go back to "the specific evidence item I had open," that state was never written to the URL in the first place, so the back button only ever knows about the 5 top-level views, not anything inside one of them.
 
 ---
 
