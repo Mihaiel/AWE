@@ -95,7 +95,14 @@ h4 {
   flex-wrap: wrap;
 }
 
-.nav-btn {
+/* .react-nav-btn: Exercise 3, Demo 9's React shell deliberately does NOT
+   reuse .nav-btn itself here, js/router.ts and js/main.ts both run an
+   unscoped `document.querySelectorAll(".nav-btn")` that would otherwise
+   strip/attach state to these buttons too, a real collision found by
+   testing, not a hypothetical. Same look via a shared selector list,
+   no shared class name for JS to find. */
+.nav-btn,
+.react-nav-btn {
   background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.25);
   color: #e8ecf5;
@@ -105,11 +112,13 @@ h4 {
   font-size: 0.88rem;
 }
 
-.nav-btn:hover {
+.nav-btn:hover,
+.react-nav-btn:hover {
   background: rgba(255, 255, 255, 0.12);
 }
 
-.nav-btn.active {
+.nav-btn.active,
+.react-nav-btn.active {
   background: var(--color-accent);
   border-color: var(--color-accent);
   color: #fff;

@@ -336,14 +336,29 @@ ticked — the table above is just a fast overview, tick the boxes inside each d
 
 **Tasks**
 
-- [ ] Build the header/branding, the navigation bar, and a routing skeleton (even a minimal one, a full router library is not required yet) in React + TypeScript.
-- [ ] Wire it up so navigating between (stub) pages actually changes what's rendered, mirroring the current five views even though only the Dashboard will have real content this exercise.
+- [x] Build the header/branding, the navigation bar, and a routing skeleton (even a minimal one, a full router library is not required yet) in React + TypeScript.
+
+      Added [js/react/components/Header.tsx](js/react/components/Header.tsx) (branding) and [js/react/components/NavBar.tsx](js/react/components/NavBar.tsx) (5 buttons), plus a `ViewName` union type in [js/react/types.ts](js/react/types.ts). [js/react/App.tsx](js/react/App.tsx) holds `useState<ViewName>("dashboard")` and a `Record<ViewName, Component>` map, the routing skeleton: no router library, just state + a lookup table.
+
+- [x] Wire it up so navigating between (stub) pages actually changes what's rendered, mirroring the current five views even though only the Dashboard will have real content this exercise.
+
+      Added 5 stub pages under [js/react/pages/](js/react/pages/) (`DashboardPage`, `EvidencePage`, `PeoplePage`, `TimelinePage`, `WorkspacePage`), each just a placeholder paragraph, real content I guess will be added later, since this is just about the shell.
 
 **Questions** (depend on the tasks above)
 
-- [ ] How does "the current view" get tracked in your React shell? Compare this directly to how `currentPage` and `handleHashChange()` did it in the vanilla version? What's actually
-different, and what's superficially different but conceptually the same?
-- [ ] What happens in your shell if a user navigates to a view that doesn't exist? How does that compare to the vanilla app's fallback-to-dashboard behavior?
+- [x] How does "the current view" get tracked in your React shell? Compare this directly to how `currentPage` and `handleHashChange()` did it in the vanilla version? What's actually different, and what's superficially different but conceptually the same?
+
+      It's done with plain React state (`useState`), not `window.location.hash` at all.
+      
+      This shell mounts on the exact same page as the vanilla app (`?react` flag), and the vanilla router already owns the URL hash, if both apps read/wrote the same hash, clicking either nav would navigate both. Conceptually the same: both are one source-of-truth variable that a UI-update step reads to decide what's active/rendered. 
+      
+      Actually different: vanilla's `currentPage` survives a reload and the browser's back/forward buttons (it lives in the URL, see Demo 4); React's `currentView` doesn't, it's pure in-memory state, a real, honest regression, not a minor detail, that a future exercise using an actual router would need to fix.
+
+- [x] What happens in your shell if a user navigates to a view that doesn't exist? How does that compare to the vanilla app's fallback-to-dashboard behavior?
+
+      It can't happen at all, not because of a runtime fallback check, but because nothing outside my own code can ever call `setCurrentView` with anything besides the 5 `ViewName` values, `tsc` itself refuses to compile an invalid one. \
+      
+      This is different to the previous vanilla version where `handleHashChange()` needs a runtime check (`if (validViews.indexOf(hash) === -1) hash = "dashboard"`) specifically because the hash is genuinely external and user-controlled input with the segment #, whereas my shell's navigation only ever comes from its own 5 known buttons, there's no external input path into `currentView` to validate against in the first place.
 
 ---
 
