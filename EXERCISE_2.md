@@ -350,9 +350,10 @@ ticked. The table above is just a fast overview, tick the boxes inside each demo
 
       1. Commit and push the workflow itself first, so Actions starts running on this branch: `git add .github package.json EXERCISE_2.md CHANGES.MD`, `git commit -m "..."`, `git push -u origin 02/08`. This first run should pass.
 
+      From here:
       2. Add an unused variable to [js/utils.ts](js/utils.ts) (e.g. `const demoLintFailure = 123;`), triggers ESLint's `no-unused-vars` rule from Demo 4.
       3. `git add js/utils.ts`, `git commit -m "Demo 8: deliberately break lint"`, `git push`.
-      4. Check the repo's Actions tab: this run fails on the **Lint** step.
+      4. Check the repo's Actions tab: this run fails on the Lint step.
 
 - [ ] Fix it and push again, and show the same workflow **passing**.
 
