@@ -5,4 +5,14 @@
 // explicit (if currently empty) config file rather than skipping it,
 // so later demos (e.g. a GitHub Pages base path) have an obvious place
 // to add to instead of introducing the file from scratch mid-exercise.
-export default {};
+//
+// Exercise 2, Demo 9: GitHub Pages serves a repo (not a user/org) site
+// under /<repo-name>/, not at the domain root, so the built index.html's
+// own asset references (the <script>/<link> tags Vite rewrites) need
+// that prefix or they'd 404 once deployed. Doesn't affect the fetch()
+// calls to data/*.json or the public/assets/ image reference in
+// index.html, both stay plain relative paths Vite never touches, and
+// the browser resolves those against the page's own URL regardless.
+export default {
+  base: "/AWE/",
+};

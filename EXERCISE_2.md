@@ -381,15 +381,34 @@ ticked. The table above is just a fast overview, tick the boxes inside each demo
 
 **Tasks**
 
-- [ ] Write a second workflow that, on push to your main branch (or another trigger you choose and can justify), checks out the repo, installs dependencies, lints, builds (`vite build`), and deploys the `dist/` output to GitHub Pages (or an equivalent static host).
-- [ ] Confirm the deployed URL actually serves the working app end-to-end, not just that the workflow reports success.
-- [ ] Make a real change, push it, and show it going live via the workflow without any manual deployment step.
+- [x] Write a second workflow that, on push to your main branch (or another trigger you choose and can justify), checks out the repo, installs dependencies, lints, builds (`vite build`), and deploys the `dist/` output to GitHub Pages (or an equivalent static host).
+
+      We have ci.yml, which basically verifies our code linting and format checking.
+      Now I added the deploy.yml, which actually runs the building step and ships the app.
+      Since we want to publish the app, and we need to publish only the /dist, I made sure to include inside Vite -> vite.config.js the base of our app, which is now /AWE.
+
+
+      Added `.github/workflows/deploy.yml`. Triggers on `push` to `main` only (not every branch, like Demo 8's CI workflow), a deployment should only happen once a change has actually merged, not on every work-in-progress push to a demo branch. Two jobs: `build` (checkout, Node 22, `npm ci`, `npm run lint`, `npm run build`, then `actions/upload-pages-artifact@v3` uploads `dist/`), then `deploy` (`actions/deploy-pages@v4` publishes that artifact). Also set `base: "/AWE/"` in `vite.config.js`, GitHub Pages serves this repo under `/AWE/`, not the domain root, so the built `index.html`'s own `<script>`/`<link>` tags need that prefix or they'd 404 once deployed.
+
+- [x] Confirm the deployed URL actually serves the working app end-to-end, not just that the workflow reports success.
+
+      Verified the `/AWE/` base path locally before ever pushing it: built with `npm run build`, copied `dist/` into a `pages-sim/AWE/` folder, served it with Python's `http.server`, and loaded `http://localhost:8743/AWE/` in the browser. All requests (JS, CSS, `data/*.json`, the logo image) returned 200, and the full app (dashboard, evidence, people, timeline) worked identically to local dev. After the real push, re-checked the same thing on the actual `https://mihaiel.github.io/AWE/` URL.
+
+- [x] Make a real change, push it, and show it going live via the workflow without any manual deployment step.
 
 **Questions** (depend on the tasks above)
 
-- [ ] Why does the deploy workflow re-run lint and build itself, instead of trusting "it already passed on my machine" or reusing Demo 8's workflow's result directly?
-- [ ] What is the actual mechanism your deploy workflow uses to publish to GitHub Pages (e.g. a dedicated deploy action publishing an artifact, pushing to a `gh-pages` branch, or something else)? Explain, concretely, what it does.
-- [ ] What would you need to change in this workflow if you were deploying to a different static host instead (e.g. Netlify, Vercel, a plain server over SFTP)? What would stay the same?
+- [x] Why does the deploy workflow re-run lint and build itself, instead of trusting "it already passed on my machine" or reusing Demo 8's workflow's result directly?
+
+      Same reasoning as Demo 8's first question: "passed on my machine" isn't verified, it's claimed. Workflows also can't directly reuse another workflow's build output by default, each run starts from a clean checkout, so re-running `lint`/`build` here is what actually guarantees the exact commit being deployed is the one that was checked, not a stale or manually-rebuilt `dist/`.
+
+- [x] What is the actual mechanism your deploy workflow uses to publish to GitHub Pages (e.g. a dedicated deploy action publishing an artifact, pushing to a `gh-pages` branch, or something else)? Explain, concretely, what it does.
+
+      The dedicated-action route, not a `gh-pages` branch. `actions/upload-pages-artifact@v3` packages the `dist/` folder into a build artifact (a `.tar` GitHub stores for the run); `actions/deploy-pages@v4` (in a separate `deploy` job, gated by `needs: build`) then hands that artifact to GitHub's own Pages deployment API, which serves it directly, no extra branch or commit is ever created in the repository for this.
+
+- [x] What would you need to change in this workflow if you were deploying to a different static host instead (e.g. Netlify, Vercel, a plain server over SFTP)? What would stay the same?
+
+      The `build` job (checkout, `npm ci`, `lint`, `build`) stays exactly the same, it produces the same `dist/` regardless of where it ends up. Only the `deploy` job's publish step would change, swap `actions/upload-pages-artifact`/`actions/deploy-pages` for that host's own action (or a generic `rsync`/`scp` step over SFTP), and the `permissions`/`environment` blocks are GitHub-Pages-specific, they'd be replaced by whatever auth that host needs (an API token as a repo secret, most commonly).
 
 ---
 
