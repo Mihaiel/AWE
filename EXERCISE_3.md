@@ -87,14 +87,27 @@ ticked — the table above is just a fast overview, tick the boxes inside each d
 
 **Tasks**
 
-- [ ] In your own words (a few sentences, not a copied definition), explain what the virtual DOM is and what problem it solves.
-- [ ] Find one concrete example in the *original* vanilla `app.js` (from before Exercise 1) where a small state change (e.g. toggling one bookmark) caused a large chunk of real DOM to be recreated via `innerHTML`, even though only a tiny part of it actually needed to change.
+- [x] In your own words (a few sentences, not a copied definition), explain what the virtual DOM is and what problem it solves.
+
+      The virtual doom is light in-memory copy of what the DOM should look like. Instead of mutating the real DOM directly on every change, the library builds a new virtual copy, compares it to the previous one, and only applies the specific real-DOM changes needed. It solves the "rewriting far more of the page than actually changed" problem. Also innerHTML rebuilds do this and it's bad.
+
+- [x] Find one concrete example in the *original* vanilla `app.js` (from before Exercise 1) where a small state change (e.g. toggling one bookmark) caused a large chunk of real DOM to be recreated via `innerHTML`, even though only a tiny part of it actually needed to change.
+
+      Found in the pre-Exercise-1 `app.js` (deleted in commit `95d915a`, viewable via `git show 22cb2d8:app.js`). `handleBookmarkClick()` flips one evidence item's `bookmarked` flag, then calls `renderEvidenceList()`, which loops over *every* filtered evidence item, rebuilds each one's full card HTML, and does one `container.innerHTML = html`. Toggling a single ★ destroys and recreates all 18 evidence cards' real DOM nodes, not just the one card whose icon actually changed.
 
 **Questions** (depend on the tasks above)
 
-- [ ] Using the example you found: how would a virtual-DOM-based approach (conceptually, not necessarily React-specific) avoid recreating the parts that didn't change?
-- [ ] Is the virtual DOM a "faster" way to update the real DOM than directly calling `innerHTML`? Explain precisely what's actually being traded off (think about the diffing work itself).
-- [ ] Does using a virtual DOM library automatically make your app fast? What could still make a React app slow despite it?
+- [x] Using the example you found: how would a virtual-DOM-based approach (conceptually, not necessarily React-specific) avoid recreating the parts that didn't change?
+
+      It would diff the new virtual tree (17 unchanged cards + 1 changed icon/class) against the previous one, see that 17 cards are identical, and only touch the real DOM for that one card's icon and class, leaving the other 17 real DOM nodes completely untouched.
+
+- [x] Is the virtual DOM a "faster" way to update the real DOM than directly calling `innerHTML`? Explain precisely what's actually being traded off (think about the diffing work itself).
+
+      Not in that sense, but it's actually more work in one sense: building a new virtual tree and diffing it against the old one is extra JS computation `innerHTML` never does. The trade is extra cheap JS-side diffing in exchange for far less expensive real-DOM mutation (DOM writes trigger layout/style recalculation; comparing two JS objects doesn't), so it wins specifically when the DOM subtree being touched is large and the actual change is small.
+
+- [x] Does using a virtual DOM library automatically make your app fast? What could still make a React app slow despite it?
+
+      No. It only guarantees that whatever gets re-rendered is applied to the real DOM efficiently, it says nothing about how often or how much re-renders in the first place. A React app can be slow from components re-rendering too often.
 
 ---
 
