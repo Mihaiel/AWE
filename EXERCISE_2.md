@@ -340,15 +340,36 @@ ticked. The table above is just a fast overview, tick the boxes inside each demo
 
 **Tasks**
 
-- [ ] Write a GitHub Actions workflow that triggers on push (and/or pull request), checks out the repo, sets up Node.js at the right version, installs dependencies (with dependency caching), and runs your `lint` and a format-check (e.g. `prettier --check`).
+- [x] Write a GitHub Actions workflow that triggers on push (and/or pull request), checks out the repo, sets up Node.js at the right version, installs dependencies (with dependency caching), and runs your `lint` and a format-check (e.g. `prettier --check`).
+
+      Added `.github/workflows/ci.yml`. Triggers on `push` and `pull_request`. Steps: `actions/checkout@v4`, `actions/setup-node@v4`. Picked Node 22 (an LTS version) for CI rather than matching my local Node 23 (a non-LTS "Current" release) deliberately, CI should run on a stable, reproducible version, not whatever happens to be on one machine.
+
 - [ ] Push a commit that deliberately fails lint or format, and show the workflow **failing** in the Actions tab.
+
+      1. Commit and push the workflow itself first, so Actions starts running on this branch: `git add .github package.json EXERCISE_2.md CHANGES.MD`, `git commit -m "..."`, `git push -u origin 02/08`. This first run should pass.
+      2. Add an unused variable to [js/utils.ts](js/utils.ts) (e.g. `const demoLintFailure = 123;`), triggers ESLint's `no-unused-vars` rule from Demo 4.
+      3. `git add js/utils.ts`, `git commit -m "Demo 8: deliberately break lint"`, `git push`.
+      4. Check the repo's Actions tab: this run fails on the **Lint** step.
+
 - [ ] Fix it and push again, and show the same workflow **passing**.
+
+      1. Remove the `demoLintFailure` line from [js/utils.ts](js/utils.ts).
+      2. `git add js/utils.ts`, `git commit -m "Demo 8: fix lint failure"`, `git push`.
+      3. Check the Actions tab again: this run passes.
 
 **Questions** (depend on the tasks above)
 
-- [ ] What is the difference between a workflow, a job, and a step in GitHub Actions? Point to one of each in your workflow file.
-- [ ] Why should lint/format run in CI at all, if it already runs (or could run) on every developer's own machine before they push?
-- [ ] What is dependency caching doing in your workflow, and what would happen (both correctness- and speed-wise) if you removed it?
+- [x] What is the difference between a workflow, a job, and a step in GitHub Actions? Point to one of each in your workflow file.
+
+      A workflow is the whole file, `.github/workflows/ci.yml` itself. A job is one group of steps that runs on its own machine, `lint-and-format` here, the only job in this workflow.
+
+- [x] Why should lint/format run in CI at all, if it already runs (or could run) on every developer's own machine before they push?
+
+      Because "could run locally" isn't "did run locally", nothing stops someone from pushing without running it, forgetting, or having a different local setup. CI is the one place every change is checked the same way, regardless of whose machine it came from, before it's trusted.
+
+- [x] What is dependency caching doing in your workflow, and what would happen (both correctness- and speed-wise) if you removed it?
+
+      `cache: "npm"` in the `actions/setup-node@v4` step caches `node_modules` between runs, keyed on `package-lock.json`, so `npm ci` can restore already-downloaded packages instead of re-downloading all of them from the registry every single run. Removing it wouldn't break correctness, `npm ci` always installs exactly what the lockfile says either way, it would only make every run slower (a fresh download of every dependency each time).
 
 ---
 
