@@ -306,13 +306,29 @@ ticked — the table above is just a fast overview, tick the boxes inside each d
 
 **Tasks**
 
-- [ ] Argue whether an SPA built with React is actually the right architecture for *this specific app*, given what it does.
-- [ ] Include honest trade-offs or downsides of the SPA/React choice for this app, not just the benefits.
+- [x] Argue whether an SPA built with React is actually the right architecture for *this specific app*, given what it does.
+
+      Yes, for SPA as an architecture: this app's actual job is one investigator repeatedly filtering, sorting, bookmarking, and cross-referencing the same dataset for an extended session.
+      
+      It isn't public content needing SEO or anonymous first-time visitors, it's a working tool for one user already committed to using it.
+
+- [x] Include honest trade-offs or downsides of the SPA/React choice for this app, not just the benefits.
+
+      Adding React in Demo 6 grew the production bundle from ~22 KB to ~240 KB (~75 KB gzipped) for an app that doesn't use most of what React is actually built for (huge component trees, complex concurrent state, large teams working in parallel). 
 
 **Questions** (depend on the tasks above)
 
-- [ ] What would you lose by keeping this app as server-rendered vanilla HTML/JS instead? What would you lose by choosing React specifically over a *different* SPA approach (e.g. vanilla JS with a router, or a lighter library)?
-- [ ] If this app needed to support users on very low-end devices or poor connections as a hard requirement, would you stick with SPA or change the architecture? Why or why not?
+- [x] What would you lose by keeping this app as server-rendered vanilla HTML/JS instead? What would you lose by choosing React specifically over a *different* SPA approach (e.g. vanilla JS with a router, or a lighter library)?
+
+      Keeping it server-rendered: lose the instant, no-reload filtering/bookmarking/note-taking that's this app's entire point, every small interaction would mean a full round trip and full page reload. We would also lose the "app-like" feeling.
+
+      Choosing React over a lighter SPA approach (plain vanilla + a small router, or a lighter library like Preact): lose a smaller bundle and far less build tooling, this app was already a hand-rolled vanilla SPA with its own router and state object so a lighter option would've cost much less migration effort for the same result.
+
+- [x] If this app needed to support users on very low-end devices or poor connections as a hard requirement, would you stick with SPA or change the architecture? Why or why not?
+
+      No, I'd move toward SSR or at least a hybrid approach (server-rendered shell, minimal JS hydrated after). Low-end devices and poor connections are where CSR's cost (download + parse + execute a large JS bundle before anything is visible) hurts most, and this app's bundle is already ~75 KB gzipped and only growing as more views migrate. 
+      
+      I think a hybrid approach trades away some of the smooth no-reload navigation to guarantee visible content arrives immediately from the server, the right trade when the worst case is a hard requirement rather than an edge case.
 
 ---
 
