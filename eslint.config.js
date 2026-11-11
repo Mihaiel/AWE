@@ -1,12 +1,17 @@
-// Exercise 2, Demo 4.
+// Exercise 2, Demo 4. TypeScript support (typescript-eslint) added Demo 8,
+// after discovering this config only ever matched **/*.js - once Demo 7
+// converted the whole app to .ts, `eslint .` was silently linting nothing.
+// See CHANGES.MD.
 import js from "@eslint/js";
 import globals from "globals";
+import tseslint from "typescript-eslint";
 
 export default [
   { ignores: ["dist/**", "node_modules/**", "public/**"] },
   js.configs.recommended,
+  ...tseslint.configs.recommended,
   {
-    files: ["**/*.js"],
+    files: ["**/*.js", "**/*.ts"],
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "module",

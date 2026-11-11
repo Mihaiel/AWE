@@ -344,9 +344,12 @@ ticked. The table above is just a fast overview, tick the boxes inside each demo
 
       Added `.github/workflows/ci.yml`. Triggers on `push` and `pull_request`. Steps: `actions/checkout@v4`, `actions/setup-node@v4`. Picked Node 22 (an LTS version) for CI rather than matching my local Node 23 (a non-LTS "Current" release) deliberately, CI should run on a stable, reproducible version, not whatever happens to be on one machine.
 
+      A BUG THAT I FOUND: `eslint.config.js` (from Demo 4) only ever had a `files: ["**/*.js"]` block, so after Demo 7 converted the whole app to `.ts`, `npm run lint` was silently linting nothing, `npx eslint js/utils.ts` directly confirmed `File ignored because no matching configuration was supplied`. Fixed by adding the `typescript-eslint` package and wiring it into `eslint.config.js`.
+
 - [ ] Push a commit that deliberately fails lint or format, and show the workflow **failing** in the Actions tab.
 
       1. Commit and push the workflow itself first, so Actions starts running on this branch: `git add .github package.json EXERCISE_2.md CHANGES.MD`, `git commit -m "..."`, `git push -u origin 02/08`. This first run should pass.
+
       2. Add an unused variable to [js/utils.ts](js/utils.ts) (e.g. `const demoLintFailure = 123;`), triggers ESLint's `no-unused-vars` rule from Demo 4.
       3. `git add js/utils.ts`, `git commit -m "Demo 8: deliberately break lint"`, `git push`.
       4. Check the repo's Actions tab: this run fails on the **Lint** step.
