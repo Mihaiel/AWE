@@ -366,15 +366,31 @@ ticked — the table above is just a fast overview, tick the boxes inside each d
 
 **Tasks**
 
-- [ ] Rebuild the Dashboard view as React components (using your hierarchy from Demo 7 as a starting point), rendering the case summary, stat cards, review progress, and the recent
-evidence/timeline lists. Reading from the same data your app already loads.
-- [ ] Confirm it renders correctly with real data, and that navigating away and back doesn't lose or corrupt anything.
+- [x] Rebuild the Dashboard view as React components (using your hierarchy from Demo 7 as a starting point), rendering the case summary, stat cards, review progress, and the recent evidence/timeline lists. Reading from the same data your app already loads.
+
+      Built inside /js/react/components `CaseSummaryCard`, `StatCard`, `ReviewProgressBar`, and `MiniListItem` under [js/react/components/](js/react/components/), straight from Demo 7's hierarchy, plus the real [js/react/pages/DashboardPage.tsx](js/react/pages/DashboardPage.tsx) that fetches `data/*.json` and composes them. Reuses Exercise 2's own `Evidence`/`Person`/`Location`/`TimelineEvent`/`Case` types from [js/types.ts](js/types.ts) and its `formatDate`/`getStatusBadgeClass` helpers from [js/utils.ts](js/utils.ts) directly, not reinvented.
+
+- [x] Confirm it renders correctly with real data, and that navigating away and back doesn't lose or corrupt anything.
+
+      All working well with real numbers that match the previous dashboard implementation, Navigated to the Evidence stub and back to Dashboard, it re-fetched and re-rendered correctly with no console errors and no stale/corrupted state.
 
 **Questions** (depend on the tasks above)
 
-- [ ] Where does the Dashboard's data (case info, evidence, timeline) come from in your React version, and how does it get to the components that render it? Is this the final architecture you intend to keep, or a placeholder you know you'll change in a later exercise?
-- [ ] The old vanilla dashboard had a real bug where it could show stale numbers because it only re-rendered on a view's *first* visit (a manual render-cache flag). Does your React version have an equivalent risk? Why or why not, given how React re-renders?
-- [ ] What, if anything, does your React Dashboard do differently from the vanilla one in terms of *when* it recalculates derived values (like the review-progress percentage)?
+- [x] Where does the Dashboard's data (case info, evidence, timeline) come from in your React version, and how does it get to the components that render it? Is this the final architecture you intend to keep, or a placeholder you know you'll change in a later exercise?
+
+      `DashboardPage` fetches `data/case.json`/`evidence.json`/`people.json`/`locations.json`/`timeline.json` itself, directly, inside a `useEffect`, and passes the results down as props to `CaseSummaryCard`/`StatCard`/etc. 
+      
+      A placeholder, not final: the vanilla app fetches once into one shared `js/state.ts` object every view reads from, this duplicates that fetch per-component and won't share data once more views migrate.
+
+- [x] The old vanilla dashboard had a real bug where it could show stale numbers because it only re-rendered on a view's *first* visit (a manual render-cache flag). Does your React version have an equivalent risk? Why or why not, given how React re-renders?
+
+      No. [js/router.ts:43-45](js/router.ts:43) only calls `renderDashboard()` the *first time ever* Dashboard is visited in a session, then sets `state.viewRendered.dashboard = true` and skips every later call, the HTML on screen just stays frozen from that one render, even if the data changes afterward. 
+      
+      My shell has no equivalent flag anywhere: [js/react/App.tsx:25-43](js/react/App.tsx:25)'s `PAGES` map + `<CurrentPage />` means every click on a nav button throws away whatever page component was showing and mounts a brand new instance of the next one from scratch, not reusing the old one. Since [js/react/pages/DashboardPage.tsx:46](js/react/pages/DashboardPage.tsx:46)'s data-fetching `useEffect` runs once per *mount*, not once per app lifetime, a fresh instance means it fetches fresh data again, every time.
+
+- [x] What, if anything, does your React Dashboard do differently from the vanilla one in terms of *when* it recalculates derived values (like the review-progress percentage)?
+
+      The vanilla version computes `reviewedCount`/`progressPct` once, inside [js/views/dashboard.ts:11-19](js/views/dashboard.ts:11), only when `renderDashboard()` actually runs (which, per the bug above, might be just once for the whole session). Mine recomputes them as plain `const`s directly in the component body at [js/react/pages/DashboardPage.tsx:89-93](js/react/pages/DashboardPage.tsx:89), on every single render, not cached in any state variable, so they're always correct for whatever `data` currently holds, never a leftover value from an earlier render.
 
 ---
 
