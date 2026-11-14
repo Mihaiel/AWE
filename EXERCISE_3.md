@@ -348,6 +348,7 @@ ticked — the table above is just a fast overview, tick the boxes inside each d
 
 - [x] How does "the current view" get tracked in your React shell? Compare this directly to how `currentPage` and `handleHashChange()` did it in the vanilla version? What's actually different, and what's superficially different but conceptually the same?
 
+      In App.tsx -> 34, 35, 40
       It's done with plain React state (`useState`), not `window.location.hash` at all.
       
       This shell mounts on the exact same page as the vanilla app (`?react` flag), and the vanilla router already owns the URL hash, if both apps read/wrote the same hash, clicking either nav would navigate both. Conceptually the same: both are one source-of-truth variable that a UI-update step reads to decide what's active/rendered. 
