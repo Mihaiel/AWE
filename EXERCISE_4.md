@@ -87,13 +87,33 @@ These checkboxes are for self-checking. Don't forget to do the actual checking o
 
 **Tasks**
 
-- [ ] Implement at least two real conditional-rendering cases in the views you're migrating. For example: an empty state (e.g. "no timeline events match" if applicable), and a state-dependent style/label (e.g. the active People/Locations tab, or a certainty badge's variant on a timeline event).
-- [ ] Use at least two different conditional-rendering techniques (e.g. a ternary, `&&`, early-return, or a lookup/mapping function) and be ready to justify which you used where.
+- [x] Implement at least two real conditional-rendering cases in the views you're migrating. For example: an empty state (e.g. "no timeline events match" if applicable), and a state-dependent style/label (e.g. the active People/Locations tab, or a certainty badge's variant on a timeline event).
+
+    Case 1, the active People/Locations tab: [js/react/pages/PeoplePage.tsx](js/react/pages/PeoplePage.tsx) now has real `activeTab` state and a ternary picking which `Panel` (People or Locations) renders, plus a conditional className on each tab button.
+      
+    Case 2, timeline certainty badge variant: [js/react/components/CertaintyBadge.tsx](js/react/components/CertaintyBadge.tsx) picks the badge's CSS class from `certainty` via the existing `certaintyBadgeClass()` lookup function from `js/utils.ts`. Also added a timeline empty-state check in [js/react/pages/TimelinePage.tsx](js/react/pages/TimelinePage.tsx), genuinely real code, just not reachable right now since the dataset always has 15 entries and filters aren't wired yet.
+
+- [x] Use at least two different conditional-rendering techniques (e.g. a ternary, `&&`, early-return, or a lookup/mapping function) and be ready to justify which you used where.
+
+    Four, across the two cases: a ternary for which People/Locations panel renders (exactly two mutually-exclusive outcomes, a ternary fits that shape directly);
+      
+    `&&` for the timeline empty state (nothing to render in the common case, no "else" branch needed); 
+       
+    a lookup/mapping function (`certaintyBadgeClass()`) for picking the badge's CSS class, reused rather than written as a new if/else chain
+       
+    and early-return in `CertaintyBadge` (`if (!certainty) return null`), the cleanest way to say "render nothing at all" for one specific case without wrapping the rest of the component in an `if`.
 
 **Questions** (depend on the tasks above)
 
-- [ ] Show one place where you used `condition && <Component />}` instead of a ternary. What would go wrong if `condition` were a number like `0` instead of a boolean and does that risk apply to your actual code?
-- [ ] Why might returning `null` from a component be preferable to returning an empty `<div>` in some cases? Did you use either, and why?
+- [x] Show one place where you used `condition && <Component />}` instead of a ternary. What would go wrong if `condition` were a number like `0` instead of a boolean and does that risk apply to your actual code?
+
+    [js/react/pages/TimelinePage.tsx:40](js/react/pages/TimelinePage.tsx:40): `{events.length === 0 && <p>...</p>}`. If `condition` were `0` itself (not a boolean expression that evaluates to a number), React would render the literal text "0" onto the page, since `0 && anything` evaluates to `0`, and `0` is a valid, renderable JSX child. My actual code is safe: `events.length === 0` is a comparison, so it always evaluates to a real boolean, never the raw number itself.
+
+- [x] Why might returning `null` from a component be preferable to returning an empty `<div>` in some cases? Did you use either, and why?
+
+      An empty div still creates a real DOM node, taking up a slot in the tree (and, depending on CSS, potentially occupying space or affecting layout) for something with nothing to show
+      
+      `return null` renders nothing at all, no DOM node exists. Used it in `CertaintyBadge`: if there's no certainty value, an empty `<span className="badge ...">` would still show as a tiny empty pill in the UI, `null` means nothing renders there at all.
 
 ---
 

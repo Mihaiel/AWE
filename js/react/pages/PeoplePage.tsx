@@ -1,12 +1,15 @@
 // ---------------------------------------------------------------------
-// PEOPLE & LOCATIONS PAGE - real content, Exercise 4 Demo 1
+// PEOPLE & LOCATIONS PAGE - real content, Exercise 4
 // ---------------------------------------------------------------------
-// No tab toggle yet, both lists just render one after another. Switching
-// between them (the vanilla app's active-tab behavior) needs conditional
-// rendering + a bit of state, that's Demo 2's job, not this one. Fetches
-// its own data the same way Exercise 3 Demo 10's DashboardPage does,
-// same known placeholder: fine for migrating one view, a shared data
-// layer is still the real architecture once more views move over.
+// Fetches its own data the same way Exercise 3 Demo 10's DashboardPage
+// does, same known placeholder: fine for migrating one view, a shared
+// data layer is still the real architecture once more views move over.
+//
+// Demo 2: the People/Locations tab toggle is the task's own named
+// example of "a state-dependent style/label." activeTab is genuinely
+// minimal UI state (which of two already-fetched lists to show), not
+// the kind of feature-level interactivity (filtering, forms) this
+// exercise otherwise rules out.
 import { useEffect, useState } from "react";
 import type { Person, Location } from "../../types.js";
 import PersonCard from "../components/PersonCard.js";
@@ -18,8 +21,11 @@ interface PeopleLocationsData {
   locations: Location[];
 }
 
+type Tab = "people" | "locations";
+
 export default function PeoplePage() {
   const [data, setData] = useState<PeopleLocationsData | null>(null);
+  const [activeTab, setActiveTab] = useState<Tab>("people");
 
   useEffect(() => {
     let cancelled = false;
@@ -49,16 +55,35 @@ export default function PeoplePage() {
 
   return (
     <div>
-      <Panel title="People">
-        {data.people.map((person) => (
-          <PersonCard key={person.id} person={person} />
-        ))}
-      </Panel>
-      <Panel title="Locations">
-        {data.locations.map((location) => (
-          <LocationCard key={location.id} location={location} />
-        ))}
-      </Panel>
+      <div className="tab-bar">
+        <button
+          type="button"
+          className={"tab-btn" + (activeTab === "people" ? " active" : "")}
+          onClick={() => setActiveTab("people")}
+        >
+          People
+        </button>
+        <button
+          type="button"
+          className={"tab-btn" + (activeTab === "locations" ? " active" : "")}
+          onClick={() => setActiveTab("locations")}
+        >
+          Locations
+        </button>
+      </div>
+      {activeTab === "people" ? (
+        <Panel title="People">
+          {data.people.map((person) => (
+            <PersonCard key={person.id} person={person} />
+          ))}
+        </Panel>
+      ) : (
+        <Panel title="Locations">
+          {data.locations.map((location) => (
+            <LocationCard key={location.id} location={location} />
+          ))}
+        </Panel>
+      )}
     </div>
   );
 }
