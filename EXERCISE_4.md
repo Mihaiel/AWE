@@ -45,16 +45,41 @@ These checkboxes are for self-checking. Don't forget to do the actual checking o
 
 **Tasks**
 
-- [ ] Build at least 3 small components for the People & Locations or Timeline views using JSX,
-each with an explicitly typed props interface/type (no untyped or `any` props).
-- [ ] Build at least one component that takes `children` (composition) rather than a data prop, and use it in a real place in the app (e.g. a generic card/panel wrapper).
+- [x] Build at least 3 small components for the People & Locations or Timeline views using JSX, each with an explicitly typed props interface/type (no untyped or `any` props).
+
+      Built `PersonCard` ([js/react/components/PersonCard.tsx](js/react/components/PersonCard.tsx), prop `person: Person`), `LocationCard` ([js/react/components/LocationCard.tsx](js/react/components/LocationCard.tsx), prop `location: Location`), and `Panel` (below). `Person`/`Location` are Exercise 2's own domain types from [js/types.ts](js/types.ts), reused, not redefined. [js/react/pages/PeoplePage.tsx](js/react/pages/PeoplePage.tsx) now fetches real `people.json`/`locations.json` and renders both lists, no tab toggle yet, that's Demo 2's job.
+
+- [x] Build at least one component that takes `children` (composition) rather than a data prop, and use it in a real place in the app (e.g. a generic card/panel wrapper).
+
+      Built `Panel` ([js/react/components/Panel.tsx](js/react/components/Panel.tsx)): a `title` prop plus `children`, reusing the existing `.dashboard-panel` CSS class from Exercise 3. Used twice for real in `PeoplePage.tsx`, once wrapping the mapped `PersonCard`s, once wrapping the mapped `LocationCard`s.
 
 **Questions** (depend on the tasks above)
 
-- [ ] Show one JSX expression in your code that embeds a JavaScript value or expression (not just static markup). For example `{person.name}` or a computed value. What can and can't go inside `{...}` in JSX?
-- [ ] For one component's typed props: what would TypeScript catch if you passed the wrong shape of data to it? Demonstrate a real type error by passing something wrong on purpose.
-- [ ] What's the difference between passing data as a named prop versus passing it as `children`? Why did you choose `children` for the component you built with it?
-- [ ] Why does direct DOM manipulation (as the old vanilla `app.js` did constantly, e.g. `innerHTML`, `classList.add/remove`, manually building elements) conflict with React's rendering model? What assumption does React make about who "owns" the DOM that direct manipulation breaks?
+- [x] Show one JSX expression in your code that embeds a JavaScript value or expression (not just static markup). For example `{person.name}` or a computed value. What can and can't go inside `{...}` in JSX?
+
+      [js/react/components/PersonCard.tsx:19](js/react/components/PersonCard.tsx:19): `<h3>{person.name}</h3>`. `{...}` can hold any JavaScript *expression* that evaluates to something renderable (a variable, a function call, a ternary, a `.map()`), it can't hold statements like `if`/`for`, those have to happen before the `return`, not inside the JSX itself.
+
+- [x] For one component's typed props: what would TypeScript catch if you passed the wrong shape of data to it? Demonstrate a real type error by passing something wrong on purpose.
+
+      Changed `<PersonCard key={person.id} person={person} />` to `person={data.locations[0]!}` on purpose in `PeoplePage.tsx`, then ran `npm run typecheck`:
+
+      ```
+      js/react/pages/PeoplePage.tsx(54,39): error TS2740: Type 'Location' is missing the following properties from type 'Person': role, speciality, responsibilities, statement, and 2 more.
+      ```
+
+      Reverted immediately after capturing it. `PersonCard`'s `person: Person` prop type is what caught this, a `Location` object genuinely is missing fields `Person` requires.
+
+- [x] What's the difference between passing data as a named prop versus passing it as `children`? Why did you choose `children` for the component you built with it?
+
+      A named prop is for simple fixed-shape data (`Panel`'s `title: string`). `children` is for random, arbitrary, structured JSX a caller composes, exactly `Panel`'s content: a list of `PersonCard`s in one place, a list of `LocationCard`s in another. 
+      
+      Forcing that through a single named prop would mean passing pre-built JSX as a value anyway, `children` is literally what JSX already has for "whatever's nested inside this tag."
+
+- [x] Why does direct DOM manipulation (as the old vanilla `app.js` did constantly, e.g. `innerHTML`, `classList.add/remove`, manually building elements) conflict with React's rendering model? What assumption does React make about who "owns" the DOM that direct manipulation breaks?
+
+      As learned in the Skriptum, after adding react-root we should not change anything manually and let react change and update UI based off the state implicitly. 
+      
+      React assumes it's the only thing that ever touches the real DOM inside a component it's rendering, it keeps its own record of what it last rendered to diff against. Direct manipulation (vanilla's `container.innerHTML = html`, `classList.add/remove`) changes the real DOM behind React's back, so on the next render React's internal record no longer matches reality, and it can silently overwrite the manual change, or get confused about what actually needs updating.
 
 ---
 
