@@ -121,11 +121,17 @@ These checkboxes are for self-checking. Don't forget to do the actual checking o
 
 **Tasks**
 
-- [ ] Render the people list, the locations list, and the timeline events list, each as a mapped collection of components, each with a proper `key` prop.
+- [x] Render the people list, the locations list, and the timeline events list, each as a mapped collection of components, each with a proper `key` prop.
+
+      Already in place from Demos 1–2, no new components needed: [js/react/pages/PeoplePage.tsx:77](js/react/pages/PeoplePage.tsx:77) (`<PersonCard key={person.id} .../>`), [js/react/pages/PeoplePage.tsx:83](js/react/pages/PeoplePage.tsx:83) (`<LocationCard key={location.id} .../>`), and [js/react/pages/TimelinePage.tsx:42](js/react/pages/TimelinePage.tsx:42) (`<TimelineEventItem key={event.id} .../>`). All three keys are the real id from the underlying data, not the array index.
 
 **Questions** (depend on the tasks above)
 
-- [ ] What does React actually use `key` for internally?
+- [x] What does React actually use `key` for internally?
+
+      React's reconciler matches each rendered element to the corresponding one from the previous render by its `key`, not by its position in the array. 
+      
+      That's what lets it tell "this is the same item, just moved or updated" apart from "this is a new item" or "this one was removed", so it can reuse the existing DOM node and component instance (and whatever state lives in it) instead of destroying and recreating it, and only patch what actually changed.
 
 ---
 
