@@ -139,13 +139,31 @@ These checkboxes are for self-checking. Don't forget to do the actual checking o
 
 **Tasks**
 
-- [ ] Deliberately use `key={index}` in one throwaway example, then demonstrate (e.g. by reordering or filtering the underlying array) a case where it produces a visibly wrong result, before replacing it with a real stable id.
+- [x] Deliberately use `key={index}` in one throwaway example, then demonstrate (e.g. by reordering or filtering the underlying array) a case where it produces a visibly wrong result, before replacing it with a real stable id.
+
+      Built a file  js/react/components/KeyDemoThrowaway.tsx : three suspects, each row with its own local `useState` checkbox, mapped with `key={index}`. Checked Alice's box (first row), clicked a "Remove first suspect" button, and the checkbox stayed checked, now on Bob, who was never clicked, confirmed live in the browser. Switching the key to the suspect's own stable `id` and repeating the exact same steps fixes it, Alice's checked state correctly disappears along with her instead.
+
+      Not part of the real app (presentational-only, and this exercise's own scope rules out this kind of interactivity), so it's wired into [js/react/App.tsx](js/react/App.tsx) commented out rather than deleted, since it needs to be shown live: both the import and the `<KeyDemoThrowaway />` line are ready to uncomment for class, same bug reproduces immediately when toggled on, confirmed again after committing it this way. Commented back out before committing, `react.html` is unaffected by default, `npm run build` output is unchanged.
 
 **Questions** (depend on the tasks above)
 
-- [ ] What goes wrong, concretely, when keys are missing, duplicated, or based on array index for a list that can reorder or filter?
-- [ ] The *original* vanilla version of this app had a real bug where one feature used an array index as an identifier instead of a stable id. Would that same mistake, ported directly into React as `key={index}`, have caused a symptom a user could notice, or only a console warning? Explain why.
-- [ ] All of this app's real data (people, locations, timeline events) already has stable ids. Is there ever a legitimate reason to use `key={index}` anyway? When?
+- [x] What goes wrong, concretely, when keys are missing, duplicated, or based on array index for a list that can reorder or filter?
+
+      No key at all: React silently falls back to each item's render position anyway, same identity problem as `key={index}`, plus a console warning.
+      
+       Duplicate keys: React can't tell the colliding items apart, so it may reuse or drop the wrong one and warns in the console. Index-based keys on a list that can reorder or filter: exactly what the task above demonstrated, a checkbox's checked state stayed attached to position 0 instead of following the suspect it actually belonged to.
+
+- [x] The *original* vanilla version of this app had a real bug where one feature used an array index as an identifier instead of a stable id. Would that same mistake, ported directly into React as `key={index}`, have caused a symptom a user could notice, or only a console warning? Explain why.
+
+      Found it in [js/views/workspace.ts](js/views/workspace.ts)'s `renderNotesList()`: `noteEntries` stores `index: i`, `i`'s position in `state.allEvidence`, not the position within the rendered `noteEntries` list itself, then builds `id="noteText-${entry.index}"` from it. Right now this causes neither: confirmed with `grep -rn "noteText" js/ index.html` that nothing in the app ever reads that id back, and `state.allEvidence`'s own order never changes at runtime, so the id is dead weight but harmless.
+
+      Ported directly into React as `key={index}` over `noteEntries.map()` (index would naturally become the render position within `noteEntries`), it becomes exactly my demo's bug in disguise: adding a note to an evidence item earlier in `allEvidence`'s order shifts every later note down a `noteEntries` position, and React would reuse each shifted row's old state for whatever entry now lands there. Still no *visible* symptom today, for the same reason as the vanilla version, this list has no interactive per-row state yet. It would turn into a real, user-visible bug the moment a stateful feature got attached to each row, exactly the line between this exercise's presentational-only scope and Exercise 5's interactivity.
+
+- [x] All of this app's real data (people, locations, timeline events) already has stable ids. Is there ever a legitimate reason to use `key={index}` anyway? When?
+
+      Yes: a list that's rendered once, never reordered, filtered, or grown at runtime, and whose items hold no per-item local state, nothing can ever get misattached because there's nothing to lose track of. 
+      
+      None of this app's real lists qualify (all three come from fetched JSON that could in principle change). A genuine example would be a fixed, hardcoded array defined directly in the component itself, e.g. calendar weekday headers (`["Mon", "Tue", ...]`), permanent, in that exact order, forever.
 
 ---
 

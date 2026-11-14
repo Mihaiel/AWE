@@ -16,6 +16,8 @@ import EvidencePage from "./pages/EvidencePage.js";
 import PeoplePage from "./pages/PeoplePage.js";
 import TimelinePage from "./pages/TimelinePage.js";
 import WorkspacePage from "./pages/WorkspacePage.js";
+// Exercise 4, Demo 4 live demo (uncomment both this and the line in
+// <main> below to show it in class): import KeyDemoThrowaway from "./components/KeyDemoThrowaway.js";
 
 // A Record keyed by ViewName (not a plain function with a default case)
 // means TypeScript itself refuses to compile if a view is ever removed
@@ -38,6 +40,7 @@ export default function App() {
         <NavBar currentView={currentView} onNavigate={setCurrentView} />
       </Header>
       <main>
+        {/* <KeyDemoThrowaway /> */}
         <CurrentPage />
       </main>
     </div>
