@@ -211,15 +211,27 @@ These checkboxes are for self-checking. Don't forget to do the actual checking o
 
 **Tasks**
 
-- [ ] Reorganize your React source into a feature-oriented structure (e.g. grouping by
+- [x] Reorganize your React source into a feature-oriented structure (e.g. grouping by
 `people-locations/`, `timeline/`, `dashboard/`, shared `components/`, rather than one flat
 folder of files). Including the Dashboard and shell from Exercise 3.
-- [ ] Document the structure you landed on (a short `ARCHITECTURE.md` section or README snippet is enough) and the rule you used to decide what's "shared" versus "feature-local."
+
+- [x] Document the structure you landed on (a short `ARCHITECTURE.md` section or README snippet is enough) and the rule you used to decide what's "shared" versus "feature-local."
+
+      [ARCHITECTURE.md](ARCHITECTURE.md).
 
 **Questions** (depend on the tasks above)
 
-- [ ] What's the difference between organizing files "by type" (all components in one folder, all hooks in another) and "by feature"? What made you choose the structure you chose for this app specifically?
-- [ ] Where did you draw the line between a component that lives inside one feature folder and one that belongs in a shared/common folder? Give one real example of each from your own structure.
+- [x] What's the difference between organizing files "by type" (all components in one folder, all hooks in another) and "by feature"? What made you choose the structure you chose for this app specifically?
+
+      By type means every file about People & Locations is scattered across `components/`, `pages/`, etc, alongside unrelated files from Timeline and Dashboard, grouped by what kind of file it is, not by what it's for. By feature, everything one view actually needs sits together in one folder. 
+      
+      Chose by-feature here because this app's own migration is already happening one view at a time (Dashboard in Exercise 3, People & Locations and Timeline this exercise), by-feature folders make that boundary visible in the file tree itself, and it's obvious where the next migrated view's files should go. -> Pretty much every feature is grouped in their own folder (shell, people-locations, timeline, workspace)
+
+- [x] Where did you draw the line between a component that lives inside one feature folder and one that belongs in a shared/common folder? Give one real example of each from your own structure.
+
+      The rule (full reasoning in [ARCHITECTURE.md](ARCHITECTURE.md)): shared if it takes only generic props and carries no domain type or feature-specific vocabulary, feature-local otherwise, regardless of how many places currently import it.
+
+      Feature-local example: [CertaintyBadge](js/react/timeline/CertaintyBadge.tsx), it renders this app's own timeline-specific "certainty" vocabulary (`certaintyBadgeClass()`), meaningless outside Timeline even though its prop is just a `string`. Shared example: [TabBar](js/react/components/TabBar.tsx), generic `tabs`/`activeTab`/`onChange`, no domain type, even though today only `PeoplePage` actually uses it.
 
 ---
 

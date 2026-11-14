@@ -9,15 +9,15 @@
 // (no reload/back-button support here, unlike the vanilla version).
 import { useState } from "react";
 import type { ViewName } from "./types.js";
-import Header from "./components/Header.js";
-import NavBar from "./components/NavBar.js";
-import DashboardPage from "./pages/DashboardPage.js";
-import EvidencePage from "./pages/EvidencePage.js";
-import PeoplePage from "./pages/PeoplePage.js";
-import TimelinePage from "./pages/TimelinePage.js";
-import WorkspacePage from "./pages/WorkspacePage.js";
+import Header from "./shell/Header.js";
+import NavBar from "./shell/NavBar.js";
+import DashboardPage from "./dashboard/DashboardPage.js";
+import EvidencePage from "./evidence/EvidencePage.js";
+import PeoplePage from "./people-locations/PeoplePage.js";
+import TimelinePage from "./timeline/TimelinePage.js";
+import WorkspacePage from "./workspace/WorkspacePage.js";
 // Exercise 4, Demo 4 live demo (uncomment both this and the line in
-// <main> below to show it in class): import KeyDemoThrowaway from "./components/KeyDemoThrowaway.js";
+// <main> below to show it in class): import KeyDemoThrowaway from "./KeyDemoThrowaway.js";
 
 // A Record keyed by ViewName (not a plain function with a default case)
 // means TypeScript itself refuses to compile if a view is ever removed

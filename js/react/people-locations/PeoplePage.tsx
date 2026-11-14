@@ -18,8 +18,8 @@
 // what to render below them.
 import { useEffect, useState } from "react";
 import type { Person, Location } from "../../types.js";
-import PersonCard from "../components/PersonCard.js";
-import LocationCard from "../components/LocationCard.js";
+import PersonCard from "./PersonCard.js";
+import LocationCard from "./LocationCard.js";
 import Panel from "../components/Panel.js";
 import TabBar from "../components/TabBar.js";
 

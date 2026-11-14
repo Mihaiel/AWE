@@ -9,7 +9,7 @@
 // exactly the "if applicable" the task itself allows for.
 import { useEffect, useState } from "react";
 import type { TimelineEvent } from "../../types.js";
-import TimelineEventItem from "../components/TimelineEventItem.js";
+import TimelineEventItem from "./TimelineEventItem.js";
 
 export default function TimelinePage() {
   const [events, setEvents] = useState<TimelineEvent[] | null>(null);

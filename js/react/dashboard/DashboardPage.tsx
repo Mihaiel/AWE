@@ -12,7 +12,7 @@ import { useEffect, useState } from "react";
 import type { Case, Evidence, Person, Location, TimelineEvent } from "../../types.js";
 import { formatDate, getStatusBadgeClass } from "../../utils.js";
 import { STORAGE_KEY_BOOKMARKS } from "../../storage.js";
-import CaseSummaryCard from "../components/CaseSummaryCard.js";
+import CaseSummaryCard from "./CaseSummaryCard.js";
 import StatCard from "../components/StatCard.js";
 import ReviewProgressBar from "../components/ReviewProgressBar.js";
 import MiniListItem from "../components/MiniListItem.js";
