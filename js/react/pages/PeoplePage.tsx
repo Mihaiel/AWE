@@ -10,11 +10,18 @@
 // minimal UI state (which of two already-fetched lists to show), not
 // the kind of feature-level interactivity (filtering, forms) this
 // exercise otherwise rules out.
+//
+// Demo 5: this used to build the tab-bar markup itself too, fetching
+// and owning state (feature job) plus rendering tab buttons by hand
+// (presentational job) in one component. Split that second job out
+// into TabBar, this component now only decides what the tabs are and
+// what to render below them.
 import { useEffect, useState } from "react";
 import type { Person, Location } from "../../types.js";
 import PersonCard from "../components/PersonCard.js";
 import LocationCard from "../components/LocationCard.js";
 import Panel from "../components/Panel.js";
+import TabBar from "../components/TabBar.js";
 
 interface PeopleLocationsData {
   people: Person[];
@@ -55,22 +62,14 @@ export default function PeoplePage() {
 
   return (
     <div>
-      <div className="tab-bar">
-        <button
-          type="button"
-          className={"tab-btn" + (activeTab === "people" ? " active" : "")}
-          onClick={() => setActiveTab("people")}
-        >
-          People
-        </button>
-        <button
-          type="button"
-          className={"tab-btn" + (activeTab === "locations" ? " active" : "")}
-          onClick={() => setActiveTab("locations")}
-        >
-          Locations
-        </button>
-      </div>
+      <TabBar
+        tabs={[
+          { value: "people", label: "People" },
+          { value: "locations", label: "Locations" },
+        ]}
+        activeTab={activeTab}
+        onChange={setActiveTab}
+      />
       {activeTab === "people" ? (
         <Panel title="People">
           {data.people.map((person) => (

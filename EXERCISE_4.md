@@ -171,13 +171,39 @@ These checkboxes are for self-checking. Don't forget to do the actual checking o
 
 **Tasks**
 
-- [ ] Classify every component you've built so far as either "presentational" or "feature/container". Explain why.
-- [ ] Find at least one component that's currently doing more than one job, and split it into two components with a clear boundary between them.
+- [x] Classify every component you've built so far as either "presentational" or "feature/container". Explain why.
+
+    Presentational components are those whose job is only to render a view according to the props that are passed to it, aka their only concern is with displaying some content.
+    1. [PersonCard](js/react/components/PersonCard.tsx)
+    2. [LocationCard](js/react/components/LocationCard.tsx)
+    3. [Panel](js/react/components/Panel.tsx)
+    4. [CertaintyBadge](js/react/components/CertaintyBadge.tsx)
+    5. [TimelineEventItem](js/react/components/TimelineEventItem.tsx)
+    6. [CaseSummaryCard](js/react/components/CaseSummaryCard.tsx)
+    7. [StatCard](js/react/components/StatCard.tsx)
+    8. [ReviewProgressBar](js/react/components/ReviewProgressBar.tsx)
+    9. [MiniListItem](js/react/components/MiniListItem.tsx)
+    10. [NavBar](js/react/components/NavBar.tsx) (only calls back `onNavigate`, doesn't decide the view itself), [Header](js/react/components/Header.tsx), and the new [TabBar](js/react/components/TabBar.tsx) below.
+
+    Feature/container - fetch their own data and/or own state that decides what gets rendered: 
+    1. [App](js/react/App.tsx) (owns `currentView`, decides which page mounts)
+    2. [DashboardPage](js/react/pages/DashboardPage.tsx)
+    3. [PeoplePage](js/react/pages/PeoplePage.tsx) (fetches data, owns `activeTab`)
+    4. [TimelinePage](js/react/pages/TimelinePage.tsx) (fetches data). `EvidencePage`/`WorkspacePage` are still Exercise 3 stubs, out of scope this exercise, not really classifiable yet either way. (Not counting [KeyDemoThrowaway](js/react/components/KeyDemoThrowaway.tsx), Demo 4's live-demo-only scratch component, it's not part of the real app.)
+
+- [x] Find at least one component that's currently doing more than one job, and split it into two components with a clear boundary between them.
+
+      `PeoplePage` was doing this: fetching data and owning `activeTab` (a feature job) *and* hand-building the tab-bar's markup and active-class logic (a presentational job), in one file. Split the second job out into [TabBar.tsx](js/react/components/TabBar.tsx), a generic `tabs`/`activeTab`/`onChange` component that only knows how to render a row of tab buttons. `PeoplePage` now just decides what the tabs are (`[{value: "people", ...}, {value: "locations", ...}]`) and passes them down.
 
 **Questions** (depend on the tasks above)
 
-- [ ] For the component you split: what was the single responsibility of each half after the split? If an implementation detail in one half changed, would that change affect the other half? Why or why not?
-- [ ] Give one concrete rule you used to decide "this belongs in a presentational component" versus "this belongs in a feature component."
+- [x] For the component you split: what was the single responsibility of each half after the split? If an implementation detail in one half changed, would that change affect the other half? Why or why not?
+
+      `TabBar`'s only job: turn a `tabs`/`activeTab`/`onChange` into buttons, with the right one marked `.active`. `PeoplePage`'s only job (for this part): decide what the tabs are and own which one is active. If `TabBar` changed how it marks the active button internally (e.g. swapped the string-concatenation class name for a `classList`-style array join), `PeoplePage` wouldn't need any change at all, it only ever passes `tabs`/`activeTab`/`onChange` in and never looks at `TabBar`'s internals. The reverse holds too: `PeoplePage` could add a third tab, change its labels, or swap `activeTab`'s type entirely, and `TabBar` wouldn't need to change, it just renders whatever `tabs` array it's handed.
+
+- [x] Give one concrete rule you used to decide "this belongs in a presentational component" versus "this belongs in a feature component."
+
+      If deleting all of a component's props would leave it with nothing to render (because it never fetches or looks anything up on its own), it's presentational. If it would still render *something* because it has its own `useState`/`useEffect`/data source feeding it, it's feature/container.
 
 ---
 
