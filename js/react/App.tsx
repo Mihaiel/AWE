@@ -2,13 +2,11 @@
 // REACT SHELL - header, nav bar, and a minimal routing skeleton
 // ---------------------------------------------------------------------
 // Exercise 3, Demo 9. "Current view" lives in plain React state here,
-// deliberately NOT tied to window.location.hash. This shell mounts
-// alongside the vanilla app on the exact same page (Demo 6's coexistence
-// flag), and the vanilla router already owns the URL hash; having two
-// independent apps both read/write the same hash on one page would
-// mean every click in one navigates the other too. See EXERCISE_3.md
-// for the full trade-off this creates (no reload/back-button support
-// here, unlike the vanilla version).
+// deliberately NOT tied to window.location.hash. Exercise 4 moved this
+// shell onto its own page (react.html) instead of coexisting with the
+// vanilla app, but it still doesn't touch the URL: no real router yet,
+// that's Demo 8's job. See EXERCISE_3.md for the trade-off this created
+// (no reload/back-button support here, unlike the vanilla version).
 import { useState } from "react";
 import type { ViewName } from "./types.js";
 import Header from "./components/Header.js";
@@ -35,7 +33,7 @@ export default function App() {
   const CurrentPage = PAGES[currentView];
 
   return (
-    <div className="react-shell-placeholder">
+    <div className="react-shell">
       <Header>
         <NavBar currentView={currentView} onNavigate={setCurrentView} />
       </Header>

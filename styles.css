@@ -852,15 +852,10 @@ a:focus-visible {
   }
 }
 
-/* Exercise 3, Demo 6: React entry point mount point. */
-#react-root.hidden {
-  display: none;
-}
-
-.react-shell-placeholder {
-  max-width: 900px;
-  margin: 24px auto;
-  padding: 16px 20px;
-  border: 2px dashed var(--color-accent);
-  border-radius: 8px;
+/* Exercise 4: react.html's own full-page shell, no more dashed-border
+   "placeholder" box now that it's the whole page rather than a scaffold
+   sitting inside the vanilla one. */
+.react-shell {
+  max-width: 1100px;
+  margin: 0 auto;
 }

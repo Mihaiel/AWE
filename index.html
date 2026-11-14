@@ -351,15 +351,6 @@
       </p>
     </footer>
 
-    <!--
-      Exercise 3, Demo 6: separate React mount point, hidden by default.
-      js/react/main.tsx only un-hides and renders into this when the page
-      is loaded with a "react" query flag (e.g. ?react), so the vanilla
-      app above is completely unaffected for anyone not opting in.
-    -->
-    <div id="react-root" class="hidden"></div>
-
     <script type="module" src="js/main.ts"></script>
-    <script type="module" src="js/react/main.tsx"></script>
   </body>
 </html>

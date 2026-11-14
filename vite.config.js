@@ -20,7 +20,19 @@
 // Vite has no idea what to do with a `<div>` inside a .tsx file at all.
 import react from "@vitejs/plugin-react";
 
+// Exercise 4: react.html is a second, standalone HTML entry point (the
+// React shell, taking the whole page instead of mounting into a hidden
+// div inside index.html). Vite only builds index.html by default, so
+// both need listing here or react.html would 404 once deployed.
 export default {
   base: "/AWE/",
   plugins: [react()],
+  build: {
+    rollupOptions: {
+      input: {
+        main: "index.html",
+        react: "react.html",
+      },
+    },
+  },
 };
