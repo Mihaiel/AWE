@@ -1,18 +1,28 @@
 // ---------------------------------------------------------------------
 // TIMELINE PAGE - Exercise 4, Demo 2
 // ---------------------------------------------------------------------
-// Renders every event unconditionally, no filters wired yet (per this
-// exercise's own rule: filter controls can be visually present later
-// without onChange handlers; none are built here yet either). The
-// `events.length === 0 &&` check below is genuinely real code, not
-// filler, it's just not reachable with the current 15-entry dataset,
-// exactly the "if applicable" the task itself allows for.
+// Renders every event unconditionally by default, no filter dropdowns
+// wired to onChange (that stays out of scope until Exercise 5).
+//
+// Demo 10: reads an optional ?person=<id> query param once, to decide
+// the *initial* list instead of always "everything." useSearchParams()
+// is itself a useState under the hood, but nothing here ever calls its
+// setter, this component only ever reads the URL, never writes to it,
+// so no interactive state is being introduced, just a one-time
+// initial-render decision sourced from the URL instead of a hardcoded
+// "show all events." The `visibleEvents.length === 0` check below used
+// to be dead code (unreachable with the full 15-entry dataset); a
+// person filter that matches nobody (a stale/mistyped link) now
+// actually reaches it, confirmed live with ?person=not-a-real-person.
 import { useEffect, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import type { TimelineEvent } from "../../types.js";
 import TimelineEventItem from "./TimelineEventItem.js";
 
 export default function TimelinePage() {
   const [events, setEvents] = useState<TimelineEvent[] | null>(null);
+  const [searchParams] = useSearchParams();
+  const personFilter = searchParams.get("person");
 
   useEffect(() => {
     let cancelled = false;
@@ -35,10 +45,20 @@ export default function TimelinePage() {
     return <p>Loading case file&hellip;</p>;
   }
 
+  const visibleEvents = personFilter
+    ? events.filter((event) => event.personIds.includes(personFilter))
+    : events;
+
   return (
     <div>
-      {events.length === 0 && <p>No timeline events match the current filters.</p>}
-      {events.map((event) => (
+      {personFilter && (
+        <p>
+          Filtered to events involving <strong>{personFilter}</strong>.{" "}
+          <Link to="/timeline">Clear filter</Link>
+        </p>
+      )}
+      {visibleEvents.length === 0 && <p>No timeline events match the current filters.</p>}
+      {visibleEvents.map((event) => (
         <TimelineEventItem key={event.id} event={event} />
       ))}
     </div>

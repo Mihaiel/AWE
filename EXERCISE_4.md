@@ -346,13 +346,38 @@ Showing one specific person's own detail page is the first case, a route param f
 
 **Tasks**
 
-- [ ] On the Timeline view, read a query parameter (e.g. `?person=...`) when the page loads, and use it to determine the *initial* rendered list (for example, pre-selecting a person filter if the app is opened via a link that includes one). Remember, the filter controls themselves don't need to be interactive yet. This is about parameterizing the initial render from the URL, not wiring `onChange`.
-- [ ] Do a final pass confirming: Dashboard, People & Locations, and Timeline are fully React, none of them use `innerHTML` or manual DOM creation anywhere, and all three are reachable via real, bookmarkable routes.
+- [x] On the Timeline view, read a query parameter (e.g. `?person=...`) when the page loads, and use it to determine the *initial* rendered list (for example, pre-selecting a person filter if the app is opened via a link that includes one). Remember, the filter controls themselves don't need to be interactive yet. This is about parameterizing the initial render from the URL, not wiring `onChange`.
+
+      [TimelinePage.tsx:24-25](js/react/timeline/TimelinePage.tsx:24) reads `?person=` via `useSearchParams()`. [TimelinePage.tsx:48-49](js/react/timeline/TimelinePage.tsx:48) filters the list to events whose `personIds` include that id; with no `?person=`, nothing changes from before. Also added the link the other half of the task asks for: [PersonDetailPage.tsx](js/react/people-locations/PersonDetailPage.tsx), "View timeline events involving {name}" links to `/timeline?person=<id>`, not a hand-typed URL.
+
+      Verified live: `#/timeline?person=nova-byte` shows exactly her 3 events; `#/timeline?person=not-a-real-person` shows none, the `visibleEvents.length === 0` empty-state message (previously dead code, unreachable with the full 15-event dataset) actually fires now; clicking the new link from Nova Byte's own detail page lands correctly pre-filtered.
+
+- [x] Do a final pass confirming: Dashboard, People & Locations, and Timeline are fully React, none of them use `innerHTML` or manual DOM creation anywhere, and all three are reachable via real, bookmarkable routes.
+
+      With the powerful and great guidance of the LLM Machine supporting my work, here is the provided command to me lol:
+
+      `grep -rn "innerHTML\|createElement\|appendChild\|insertAdjacentHTML" js/react/` 
+      
+      returns nothing. 
+      
+      All three views are mounted purely through JSX components. Reachable at `#/`, `#/team/people` (or `/locations`), and `#/timeline`, all real `HashRouter` routes, all confirmed live across Demos 8-10.
 
 **Questions** (depend on the tasks above)
 
-- [ ] Why is reading a query parameter once, on initial render, still consistent with this exercise's "no state beyond what's necessary to render the initial view" rule? What would cross the line into "real interactivity" that's out of scope until Exercise 5?
-- [ ] What would you need to add to make Timeline's filters *actually* filter the list when a user changes them? (You don't have to build it. Just name the concept you'd need)
-- [ ] Across the 3 views you've now fully migrated, what's one piece of duplicated logic or markup you noticed but didn't extract yet? Why didn't you, and would you if you had more time?
+- [x] Why is reading a query parameter once, on initial render, still consistent with this exercise's "no state beyond what's necessary to render the initial view" rule? What would cross the line into "real interactivity" that's out of scope until Exercise 5?
+
+      `useSearchParams()` is read-only here, nothing in `TimelinePage` ever calls its setter, there's no `onChange` anywhere. The URL decides the initial list exactly once, same as a route param deciding which person's page renders. It would cross into real interactivity the moment a user action inside the page (clicking a filter, typing in a box) changed what's shown without the user navigating anywhere, that's state the component owns and reacts to, not a one-time read of something that already arrived from outside.
+
+- [x] What would you need to add to make Timeline's filters *actually* filter the list when a user changes them? (You don't have to build it. Just name the concept you'd need)
+
+      A `<select>`/checkbox bound to `useState`, with an `onChange` that calls `setSearchParams()` (react-router's setter for the URL's query string) so picking a filter updates `?person=...` itself, and the existing filter logic (already reading from `searchParams`) would just re-run on its own. The missing piece is purely the write side, `setSearchParams()`, the read side already exists.
+
+- [x] Across the 3 views you've now fully migrated, what's one piece of duplicated logic or markup you noticed but didn't extract yet? Why didn't you, and would you if you had more time?
+
+      `fetch("data/people.json")` + `await res.json()` is written out separately in three places: [DashboardPage.tsx:55](js/react/dashboard/DashboardPage.tsx:55), [PeoplePage.tsx:54](js/react/people-locations/PeoplePage.tsx:54), and [PersonDetailPage.tsx:27](js/react/people-locations/PersonDetailPage.tsx:27), each re-fetching and re-parsing the same file independently.
+
+      Didn't extract it because each page needs a different *combination* of files (Dashboard needs all 5, PeoplePage needs 2, PersonDetailPage needs just 1), so a shared "fetch one file" helper would only dedupe the trivial `fetch`+`.json()`+`unknown` line, not the real duplication (every page re-downloading data other pages already have). 
+      
+      But Yes, I'd extract it with more time.
 
 ---

@@ -49,7 +49,17 @@ export default function PersonDetailPage() {
         <Link to="/team/people">&larr; Back to People &amp; Locations</Link>
       </p>
       {person ? (
-        <PersonCard person={person} />
+        <>
+          <PersonCard person={person} />
+          <p>
+            {/* Demo 10: the other end of Timeline's ?person= query param -
+                a real place in the app that links to it, not a hand-typed
+                URL. */}
+            <Link to={`/timeline?person=${person.id}`}>
+              View timeline events involving {person.name}
+            </Link>
+          </p>
+        </>
       ) : (
         <p>No person matches &ldquo;{personId}&rdquo; in the case file.</p>
       )}
