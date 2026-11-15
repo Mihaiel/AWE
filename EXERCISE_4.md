@@ -308,15 +308,37 @@ component state) matter for the user? Name a concrete capability the user gains.
 
 **Tasks**
 
-- [ ] Add at least one route that takes a parameter (e.g. a person or location id in the URL, such as `/team/people/:personId`), and use that parameter inside the corresponding component to determine what to render.
-- [ ] Make at least one place in the app link to that parameterized route (not just typing the URL by hand). For example, a person's name in a related-evidence context, or a "view on team page" link.
+- [x] Add at least one route that takes a parameter (e.g. a person or location id in the URL, such as `/team/people/:personId`), and use that parameter inside the corresponding component to determine what to render.
+
+      Added `/team/people/:personId` ([js/react/App.tsx](js/react/App.tsx)
+      
+      the `<Route path="/team/people/:personId">` line). 
+      
+      Built [PersonDetailPage.tsx](js/react/people-locations/PersonDetailPage.tsx): reads `personId` via `useParams()`, fetches `people.json`, and finds the matching person to render (reuses `PersonCard` and `Panel`, no new markup needed). An id that matches nobody renders a "Person not found" message instead of crashing.
+
+- [x] Make at least one place in the app link to that parameterized route (not just typing the URL by hand). For example, a person's name in a related-evidence context, or a "view on team page" link.
+
+      [PersonCard.tsx](js/react/people-locations/PersonCard.tsx): the person's name is now a real `<Link to={`/team/people/${person.id}`}>`, not plain text. Clicked it live from the People list, landed on `#/team/people/signal-scholar` with that person's detail page rendered.
 
 **Questions** (depend on the tasks above)
 
-- [ ] How do you read a route parameter's value inside your component, and what type is it as far as TypeScript is concerned by default? What did you have to do to use it safely (e.g. what if the id in the URL doesn't match any real person)?
-- [ ] What's the practical difference, for the user, between `/team/people/nova-byte` (a route
+- [x] How do you read a route parameter's value inside your component, and what type is it as far as TypeScript is concerned by default? What did you have to do to use it safely (e.g. what if the id in the URL doesn't match any real person)?
+
+      `const { personId } = useParams();` in [PersonDetailPage.tsx:20](js/react/people-locations/PersonDetailPage.tsx:20). TypeScript types it as `string | undefined` by default, it has no way to know our own route config guarantees that segment exists, it only sees "some route param, maybe missing." 
+      
+      To use it safely I never assume a match: `people.find((p) => p.id === personId)` just returns `undefined` for a missing/wrong id (or a genuinely `undefined` `personId`) the same way, and the component renders a "Person not found" message instead of crashing on an id that doesn't exist in the case file.
+
+- [x] What's the practical difference, for the user, between `/team/people/nova-byte` (a route
 param) and `/team/people?person=nova-byte` (a query param)? Why is one more appropriate than
 the other for this specific case?
+
+      Both are bookmarkable but they differet a bit.
+      
+A route param (`/team/people/nova-byte`) says "this URL *is* Nova Byte's page", the id identifies the whole resource being shown.
+ 
+A query param (`/team/people?person=nova-byte`) says "the People page, filtered/configured by this value", more natural for an optional modifier on a page that still makes sense without it.
+  
+Showing one specific person's own detail page is the first case, a route param fits; Demo 10's Timeline pre-selection (the page still renders with or without a person) is the second, which is exactly why that one uses a query param instead.
 
 ---
 

@@ -24,6 +24,7 @@ import NavBar from "./shell/NavBar.js";
 import DashboardPage from "./dashboard/DashboardPage.js";
 import EvidencePage from "./evidence/EvidencePage.js";
 import PeoplePage from "./people-locations/PeoplePage.js";
+import PersonDetailPage from "./people-locations/PersonDetailPage.js";
 import TimelinePage from "./timeline/TimelinePage.js";
 import WorkspacePage from "./workspace/WorkspacePage.js";
 // Exercise 4, Demo 4 live demo (uncomment both this and the line in
@@ -45,6 +46,9 @@ export default function App() {
             <Route path="/team" element={<Navigate to="/team/people" replace />} />
             <Route path="/team/people" element={<PeoplePage />} />
             <Route path="/team/locations" element={<PeoplePage />} />
+            {/* Demo 9: the first route with a parameter, :personId is
+                read inside PersonDetailPage via useParams(). */}
+            <Route path="/team/people/:personId" element={<PersonDetailPage />} />
             <Route path="/timeline" element={<TimelinePage />} />
             <Route path="/workspace" element={<WorkspacePage />} />
             {/* Mirrors the vanilla handleHashChange() fallback: an
