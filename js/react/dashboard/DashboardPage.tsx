@@ -16,6 +16,7 @@ import CaseSummaryCard from "./CaseSummaryCard.js";
 import StatCard from "../components/StatCard.js";
 import ReviewProgressBar from "../components/ReviewProgressBar.js";
 import MiniListItem from "../components/MiniListItem.js";
+import Badge from "../components/Badge.js";
 
 interface DashboardData {
   caseData: Partial<Case>;
@@ -124,9 +125,7 @@ export default function DashboardPage() {
                 key={ev.id}
                 primaryText={ev.id}
                 secondaryText={ev.title}
-                badge={
-                  <span className={"badge " + getStatusBadgeClass(ev.status)}>{ev.status}</span>
-                }
+                badge={<Badge variantClass={getStatusBadgeClass(ev.status)}>{ev.status}</Badge>}
               />
             ))
           )}

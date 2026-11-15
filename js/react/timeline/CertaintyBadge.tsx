@@ -7,7 +7,11 @@
 // no certainty to show, real data always has one right now, but this
 // is defensive on purpose, same reasoning as Exercise 2's "don't assume
 // the JSON is always well-formed."
+//
+// Exercise 4, Demo 7: the actual "badge" pill markup moved out into the
+// shared Badge component, this just resolves certainty -> class name.
 import { certaintyBadgeClass } from "../../utils.js";
+import Badge from "../components/Badge.js";
 
 interface CertaintyBadgeProps {
   certainty: string | undefined;
@@ -15,5 +19,5 @@ interface CertaintyBadgeProps {
 
 export default function CertaintyBadge({ certainty }: CertaintyBadgeProps) {
   if (!certainty) return null;
-  return <span className={"badge badge-" + certaintyBadgeClass(certainty)}>{certainty}</span>;
+  return <Badge variantClass={"badge-" + certaintyBadgeClass(certainty)}>{certainty}</Badge>;
 }

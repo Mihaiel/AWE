@@ -239,12 +239,28 @@ folder of files). Including the Dashboard and shell from Exercise 3.
 
 **Tasks**
 
-- [ ] Extract at least one presentational component that is genuinely reused in **two or more different places** in the app (e.g. a badge, a card shell, a button variant), with a typed props API that makes it flexible enough for both uses without becoming a special-cased mess.
+- [x] Extract at least one presentational component that is genuinely reused in **two or more different places** in the app (e.g. a badge, a card shell, a button variant), with a typed props API that makes it flexible enough for both uses without becoming a special-cased mess.
+
+      Built [Badge.tsx](js/react/components/Badge.tsx): `variantClass: string` plus `children`, renders `<span className={"badge " + variantClass}>{children}</span>`.
+      
+       Used in three places: 
+       1. [CertaintyBadge.tsx:22](js/react/timeline/CertaintyBadge.tsx:22)
+       2. [CaseSummaryCard.tsx:22](js/react/dashboard/CaseSummaryCard.tsx:22)
+       3. [DashboardPage.tsx:128](js/react/dashboard/DashboardPage.tsx:128) (which used to build its own `<span className={"badge " + ...}>` inline).
 
 **Questions** (depend on the tasks above)
 
-- [ ] Show the two (or more) places your reusable component is used. What varies between them via props, and what stays fixed inside the component itself? How did you decide where that line goes?
-- [ ] The original vanilla app had duplicated HTML-template code (the same card markup written out twice, slightly differently, in two functions). Compare that directly to what you just built. What does a reusable component give you that copy-pasted template strings didn't?
+- [x] Show the two (or more) places your reusable component is used. What varies between them via props, and what stays fixed inside the component itself? How did you decide where that line goes?
+
+      The three sites above. What varies: `variantClass` (`"badge-reviewed"`, `"badge-flagged"`, etc., resolved by each caller from its own domain data via the existing `certaintyBadgeClass()`/`getStatusBadgeClass()` helpers) and the label text as `children`.
+      
+       What stays fixed inside `Badge`: the `"badge " + variantClass` shell and the `<span>` itself. The line follows the Demo 6 shared-vs-feature-local rule: `Badge` never looks at a `Person`/`Evidence`/certainty string, it only renders a pre-resolved class name, so the domain-specific lookup stays in each caller, not inside `Badge`.
+
+- [x] The original vanilla app had duplicated HTML-template code (the same card markup written out twice, slightly differently, in two functions). Compare that directly to what you just built. What does a reusable component give you that copy-pasted template strings didn't?
+
+      The vanilla app writes this exact `<span class="badge ...">` shell out by hand in at least three spots: [js/views/dashboard.ts:25](js/views/dashboard.ts:25), [js/views/evidence.ts:151](js/views/evidence.ts:151), and [js/views/evidence.ts:153](js/views/evidence.ts:153), each its own string concatenation.
+      
+       A reusable component means the markup for the pill itself exists exactly once (single source of truth) and fixing a bug in it (or restyling it) changes all three usages at once instead of needing the same edit repeated (and possibly missed) in each copy-pasted string.
 
 ---
 
