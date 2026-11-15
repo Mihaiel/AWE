@@ -110,6 +110,12 @@ h4 {
   border-radius: var(--radius);
   cursor: pointer;
   font-size: 0.88rem;
+  /* Exercise 4, Demo 8: .react-nav-btn now sits on a real <NavLink>
+     (an <a>), not a <button>, so the anchor's own default underline
+     needs resetting here, inline-block so the vertical padding above
+     renders the same as it did on a button. */
+  text-decoration: none;
+  display: inline-block;
 }
 
 .nav-btn:hover,
@@ -583,6 +589,11 @@ a:focus-visible {
   border: 1px solid var(--color-border);
   background: #fff;
   cursor: pointer;
+  /* Exercise 4, Demo 8: .tab-btn now sits on a real <Link> (an <a>),
+     not a <button>, same reset/reasoning as .react-nav-btn above. */
+  color: inherit;
+  text-decoration: none;
+  display: inline-block;
 }
 
 .tab-btn.active {

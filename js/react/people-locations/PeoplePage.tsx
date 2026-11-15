@@ -16,7 +16,18 @@
 // (presentational job) in one component. Split that second job out
 // into TabBar, this component now only decides what the tabs are and
 // what to render below them.
+//
+// Demo 8: activeTab used to be its own useState, set by TabBar's
+// onChange. Both /team/people and /team/locations now render this
+// same component (see App.tsx's routes), so activeTab is derived from
+// the current URL via useLocation() instead, the URL is the only
+// source of truth for which tab is showing, not a value React forgets
+// on reload. Data still fetches once: react-router renders the same
+// PeoplePage element across both routes, so React never unmounts it
+// when navigating between tabs, confirmed live (switching tabs doesn't
+// re-trigger the loading state).
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import type { Person, Location } from "../../types.js";
 import PersonCard from "./PersonCard.js";
 import LocationCard from "./LocationCard.js";
@@ -32,7 +43,8 @@ type Tab = "people" | "locations";
 
 export default function PeoplePage() {
   const [data, setData] = useState<PeopleLocationsData | null>(null);
-  const [activeTab, setActiveTab] = useState<Tab>("people");
+  const { pathname } = useLocation();
+  const activeTab: Tab = pathname.endsWith("/locations") ? "locations" : "people";
 
   useEffect(() => {
     let cancelled = false;
@@ -64,11 +76,10 @@ export default function PeoplePage() {
     <div>
       <TabBar
         tabs={[
-          { value: "people", label: "People" },
-          { value: "locations", label: "Locations" },
+          { value: "people", label: "People", to: "/team/people" },
+          { value: "locations", label: "Locations", to: "/team/locations" },
         ]}
         activeTab={activeTab}
-        onChange={setActiveTab}
       />
       {activeTab === "people" ? (
         <Panel title="People">

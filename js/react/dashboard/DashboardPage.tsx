@@ -41,7 +41,8 @@ export default function DashboardPage() {
 
   // Empty dependency array: re-fetches fresh every time this component
   // mounts, which happens every time the shell switches back to
-  // "dashboard" (Demo 9's PAGES map fully unmounts the previous page).
+  // "dashboard" (react-router's <Route> unmounts whichever page no
+  // longer matches the URL, same as Demo 9's old PAGES map did).
   // Unlike the vanilla dashboard, there's no render-cache flag here at
   // all, see EXERCISE_3.md questions 2 and 3.
   useEffect(() => {

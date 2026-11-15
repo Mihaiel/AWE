@@ -268,16 +268,39 @@ folder of files). Including the Dashboard and shell from Exercise 3.
 
 **Tasks**
 
-- [ ] Install a routing library (React Router or an equivalent of your choice, justified) and
+- [x] Install a routing library (React Router or an equivalent of your choice, justified) and
 replace the shell's placeholder navigation from Exercise 3 with real routes for at least Dashboard, People & Locations, and Timeline.
-- [ ] Convert the People/Locations tab toggle from local component state into two real,
+
+The app used to switch between pages (Dashboard, Timeline, etc.) just by changing a variable in React’s memory. The URL never changed, so reloading the page or bookmarking a specific tab always just dumped you back on the Dashboard.
+
+I installed a routing library so each page now has a real URL (like #/timeline or #/team/locations), and clicking nav links/tabs actually changes that URL. Bonus fix: an unknown URL now safely falls back to the Dashboard instead of showing a blank page.
+
+`npm install react-router-dom@7.18.5` (the de facto standard for React, well-typed, actively maintained).
+
+ Replaced App.tsx's `useState<ViewName>` + `PAGES` record ([js/react/App.tsx](js/react/App.tsx), old version) with `<HashRouter>`/`<Routes>`/`<Route>` covering all 5 views, see [js/react/App.tsx:34-56](js/react/App.tsx:34). [NavBar.tsx](js/react/shell/NavBar.tsx) now renders real `<NavLink>`s instead of `<button onClick>`.
+
+Tried `<BrowserRouter>` first. Found live that it breaks the exact thing routes are supposed to fix: a hard reload or a typed-in bookmark of `/AWE/team/locations` 404'd (the dev server's own history fallback served vanilla's `index.html` instead of `react.html`), and GitHub Pages (a static host, no server-side rewrite) would do the same. Switched to `HashRouter`: the part after `#` never reaches the server, so every request is for the one real file, `/AWE/react.html`, reload included, same reasoning the vanilla app's own `js/router.ts` already relied on.
+
+- [x] Convert the People/Locations tab toggle from local component state into two real,
 navigable, bookmarkable routes (e.g. `/team/people` and `/team/locations`) instead of a click handler that only changes what's shown without changing the URL.
+
+[PeoplePage.tsx](js/react/people-locations/PeoplePage.tsx): `activeTab` is no longer a `useState`, it's derived from `useLocation().pathname` ([js/react/people-locations/PeoplePage.tsx:47-48](js/react/people-locations/PeoplePage.tsx:47)). [TabBar.tsx](js/react/components/TabBar.tsx) now renders real `<Link>`s with a `to` route each, not `<button onClick>`. Both routes render the same `PeoplePage` element ([js/react/App.tsx:46-47](js/react/App.tsx:46)), so react-router doesn't remount it switching tabs, confirmed live: the "Loading case file…" state doesn't re-appear when flipping between People and Locations, data only fetches once.
+
+E.g.: 
+#/evidence - everything after the # is the fragment, and browsers never send the fragment to the server at all. It’s purely local, read by JavaScript in the page.
 
 **Questions** (depend on the tasks above)
 
-- [ ] Why does making the People/Locations tab a real route (versus keeping it as internal
+- [x] Why does making the People/Locations tab a real route (versus keeping it as internal
 component state) matter for the user? Name a concrete capability the user gains.
-- [ ] What does your router do when the URL doesn't match any route you've defined? Compare this to how the vanilla app's `handleHashChange()` fell back to the dashboard for an invalid hash.
+
+      The user can now bookmark, reload, or share a direct link to `#/team/locations` and land back on that exact tab, not always back on dashboard.
+
+- [x] What does your router do when the URL doesn't match any route you've defined? Compare this to how the vanilla app's `handleHashChange()` fell back to the dashboard for an invalid hash.
+
+      A catch-all `<Route path="*" element={<Navigate to="/" replace />} />` ([js/react/App.tsx:52](js/react/App.tsx:52)) redirects to the dashboard, confirmed live by loading `#/some-nonsense-path` and landing on `#/`.
+      
+       Same fallback destination as the vanilla `handleHashChange()`, just declared as one route entry instead of an `if`/`else` inside a hand-written hash listener.
 
 ---
 
