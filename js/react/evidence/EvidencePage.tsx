@@ -53,10 +53,20 @@
 // once, consistently - no risk of resetting 5 of 6 and forgetting one).
 // filtersReducer/INITIAL_FILTERS/EvidenceFiltersAction live below,
 // outside the component since they don't depend on any props or state.
+//
+// Demo 9: found (by testing it directly, not from a visible crash) that
+// status/relevance edits from the detail view never persisted anywhere
+// - they lived only in this component's own `data` state, so Dashboard
+// never saw them and navigating away from Evidence and back silently
+// lost them. applyEvidenceOverrides() now re-applies any saved
+// overrides right after fetching, and the two handlers below write
+// through writeEvidenceOverride() as well as updating `data`. See
+// evidenceOverrides.ts and EXERCISE_5.md Demo 9.
 import { useEffect, useReducer, useState } from "react";
 import type { Evidence, Person, Location } from "../../types.js";
 import { evidenceMentionsPerson } from "../../utils.js";
 import { useBookmarks } from "../BookmarksContext.js";
+import { applyEvidenceOverrides, writeEvidenceOverride } from "../evidenceOverrides.js";
 import EvidenceFilterToolbar from "./EvidenceFilterToolbar.js";
 import EvidenceCard from "./EvidenceCard.js";
 import EvidenceDetail from "./EvidenceDetail.js";
@@ -138,7 +148,7 @@ export default function EvidencePage() {
 
       if (!cancelled) {
         setData({
-          evidence: evidenceJson as Evidence[],
+          evidence: applyEvidenceOverrides(evidenceJson as Evidence[]),
           people: peopleJson as Person[],
           locations: locationsJson as Location[],
         });
@@ -190,6 +200,7 @@ export default function EvidencePage() {
     });
 
   function handleEvidenceStatusChange(evidenceId: string, status: string) {
+    writeEvidenceOverride(evidenceId, { status });
     setData((prev) =>
       prev
         ? {
@@ -201,6 +212,7 @@ export default function EvidencePage() {
   }
 
   function handleEvidenceRelevanceChange(evidenceId: string, relevance: string) {
+    writeEvidenceOverride(evidenceId, { relevance });
     setData((prev) =>
       prev
         ? {

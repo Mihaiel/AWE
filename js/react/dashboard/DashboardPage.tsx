@@ -8,10 +8,17 @@
 // JSON every time this page mounts, and no sharing once more views
 // migrate. See EXERCISE_3.md's first question for why this is fine for
 // migrating exactly one view, and what should replace it once more do.
+//
+// Demo 9: applyEvidenceOverrides() re-applies any status/relevance
+// edits saved from the Evidence detail view to this page's own fetched
+// copy of evidence.json - without it, this page's "Reviewed" count
+// would silently ignore those edits. See evidenceOverrides.ts and
+// EXERCISE_5.md Demo 9.
 import { useEffect, useState } from "react";
 import type { Case, Evidence, Person, Location, TimelineEvent } from "../../types.js";
 import { formatDate, getStatusBadgeClass } from "../../utils.js";
 import { useBookmarks } from "../BookmarksContext.js";
+import { applyEvidenceOverrides } from "../evidenceOverrides.js";
 import CaseSummaryCard from "./CaseSummaryCard.js";
 import StatCard from "../components/StatCard.js";
 import ReviewProgressBar from "../components/ReviewProgressBar.js";
@@ -58,7 +65,7 @@ export default function DashboardPage() {
       if (!cancelled) {
         setData({
           caseData: caseJson as Partial<Case>,
-          evidence: evidenceJson as Evidence[],
+          evidence: applyEvidenceOverrides(evidenceJson as Evidence[]),
           people: peopleJson as Person[],
           locations: locationsJson as Location[],
           timeline: timelineJson as TimelineEvent[],

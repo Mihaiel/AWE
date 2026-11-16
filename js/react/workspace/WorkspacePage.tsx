@@ -19,6 +19,21 @@
 // fewer hand-off along the way. See BookmarksContext.tsx and
 // EXERCISE_5.md Demo 8.
 //
+// Demo 9: applyEvidenceOverrides() re-applies any status/relevance
+// edits saved from the Evidence detail view, same reason as
+// DashboardPage's own comment - this page doesn't currently display
+// status/relevance anywhere, but keeping every page's `data.evidence`
+// equally overridden means there's one consistent picture of "the
+// current evidence", not three that quietly disagree. See
+// evidenceOverrides.ts and EXERCISE_5.md Demo 9.
+//
+// Demo 9 also fixed a second issue here: handleSaveDraft's setTimeout
+// had no cleanup, so navigating away from this page within the 2s
+// "Saved" window left a timer that would still try to call
+// setShowSaved() on an already-unmounted component. savedTimeoutRef
+// below tracks the pending timeout so it can be cleared on unmount (or
+// before starting a new one).
+//
 // Demo 2: the hypothesis form is one `useState<HypothesisDraft>`, not
 // 6 separate useState calls. These 6 fields are never read, reset, or
 // saved independently, every one of them is only ever used as part of
@@ -31,10 +46,11 @@
 // question for the evidence filters, a seven-field domain that - unlike
 // this one - does need individual field updates plus a few named bulk
 // operations, which is what makes it useReducer's job instead).
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Evidence, Person } from "../../types.js";
 import { STORAGE_KEY_NOTES, STORAGE_KEY_HYPOTHESIS } from "../../storage.js";
 import { useBookmarks } from "../BookmarksContext.js";
+import { applyEvidenceOverrides } from "../evidenceOverrides.js";
 
 interface WorkspaceData {
   evidence: Evidence[];
@@ -85,6 +101,20 @@ export default function WorkspacePage() {
   const [data, setData] = useState<WorkspaceData | null>(null);
   const [draft, setDraft] = useState<HypothesisDraft>(readHypothesisDraft);
   const [showSaved, setShowSaved] = useState(false);
+  const savedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clears any pending "hide the Saved message" timer left over from a
+  // save that happened right before this component unmounted - without
+  // this, that timer would still fire 2s later and call setShowSaved()
+  // on a component that's already gone. See this file's own top comment
+  // (Demo 9) and EXERCISE_5.md Demo 9.
+  useEffect(() => {
+    return () => {
+      if (savedTimeoutRef.current) {
+        clearTimeout(savedTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -98,7 +128,10 @@ export default function WorkspacePage() {
       const peopleJson: unknown = await peopleRes.json();
 
       if (!cancelled) {
-        setData({ evidence: evidenceJson as Evidence[], people: peopleJson as Person[] });
+        setData({
+          evidence: applyEvidenceOverrides(evidenceJson as Evidence[]),
+          people: peopleJson as Person[],
+        });
       }
     }
 
@@ -132,7 +165,10 @@ export default function WorkspacePage() {
       JSON.stringify({ ...draft, savedAt: new Date().toISOString() }),
     );
     setShowSaved(true);
-    setTimeout(() => setShowSaved(false), 2000);
+    if (savedTimeoutRef.current) {
+      clearTimeout(savedTimeoutRef.current);
+    }
+    savedTimeoutRef.current = setTimeout(() => setShowSaved(false), 2000);
   }
 
   return (

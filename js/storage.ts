@@ -6,6 +6,9 @@ import { state } from "./state.js";
 export const STORAGE_KEY_BOOKMARKS = "remotion_bookmarks";
 export const STORAGE_KEY_NOTES = "remotion_notes";
 export const STORAGE_KEY_HYPOTHESIS = "remotion_hypothesis";
+// Exercise 5, Demo 9: see js/react/evidenceOverrides.ts for why this
+// exists and who uses it - not read/written by the vanilla app.
+export const STORAGE_KEY_EVIDENCE_OVERRIDES = "remotion_evidence_overrides";
 
 export function saveBookmarksToStorage(): void {
   localStorage.setItem(STORAGE_KEY_BOOKMARKS, JSON.stringify(state.bookmarks));

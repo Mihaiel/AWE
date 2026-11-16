@@ -315,14 +315,29 @@ That's the "possibly hard-to-track" part, it depends entirely on whether somethi
 
 **Tasks**
 
-- [ ] Review your own Evidence/Workspace/Dashboard code specifically for: duplicated state (the same fact represented in two places), stale state (a value that doesn't update when it should), excessive prop drilling, unnecessary global state, and any remaining direct mutation.
-- [ ] Find and fix at least 2 real instances (they can be ones you introduced yourself while
-building this exercise, that's normal and expected, not a failure).
+- [x] Review your own Evidence/Workspace/Dashboard code specifically for: duplicated state (the same fact represented in two places), stale state (a value that doesn't update when it should), excessive prop drilling, unnecessary global state, and any remaining direct mutation.
+
+  Reviewed all 3 pages plus `EvidenceDetail`/`BookmarksContext`. Prop drilling and unnecessary global state are already handled (Demos 5-8); no remaining direct mutation found (confirmed by re-checking every `.filter()`/`.map()`/`.sort()`/`setX()` call). Found 2 real instances of the other two categories, detailed below.
+
+- [x] Find and fix at least 2 real instances (they can be ones you introduced yourself while building this exercise, that's normal and expected, not a failure).
+
+  1. Duplicated state (self-introduced in Demo 6): `EvidenceDetail`'s status/relevance callbacks only updated `EvidencePage`'s own in-memory `data.evidence`, never persisted. `DashboardPage` and `WorkspacePage` each fetch their own independent copy of `evidence.json`, so neither ever saw the edit, and even `EvidencePage` itself lost it the moment it unmounted and refetched. Verified live: changed "Robot diagnostic log" to Reviewed, Dashboard's "Reviewed" count stayed at 1 (not 2), and navigating back to Evidence showed it reverted to Unreviewed. Fixed with a new shared module, [js/react/evidenceOverrides.ts](js/react/evidenceOverrides.ts): `applyEvidenceOverrides()` re-applies any saved status/relevance edits right after each page's own fetch, and `writeEvidenceOverride()` persists them to `localStorage` (same pattern as bookmarks/notes). Deliberately a plain function, not a Context — the underlying evidence fetch stays independent per page (Exercise 3/4's own documented choice); only the override layer needed one shared definition. Wired into all 3 pages: [EvidencePage.tsx:151,203,215](js/react/evidence/EvidencePage.tsx), [DashboardPage.tsx](js/react/dashboard/DashboardPage.tsx), [WorkspacePage.tsx](js/react/workspace/WorkspacePage.tsx).
+
+  2. Stale state (self-introduced in Demo 2): `WorkspacePage.handleSaveDraft` ([WorkspacePage.tsx:162-172](js/react/workspace/WorkspacePage.tsx)) called `setTimeout(() => setShowSaved(false), 2000)` with no cleanup. Navigating away from Workspace within that 2-second window still left the timer running, trying to update state on an already-unmounted component. Fixed with a `savedTimeoutRef` ([WorkspacePage.tsx:104](js/react/workspace/WorkspacePage.tsx)) that tracks the pending timeout and a cleanup `useEffect` ([WorkspacePage.tsx:111-115](js/react/workspace/WorkspacePage.tsx)) that clears it on unmount; `handleSaveDraft` also clears any still-pending timer before starting a new one.
 
 **Questions** (depend on the tasks above)
 
-- [ ] For each of the 2 issues you fixed: which of the five named categories did it fall into, and how did you notice it (a visible bug, a code-review-style re-read, React DevTools, something else)?
-- [ ] Of the five named problems (duplicated state, stale state, prop drilling, unnecessary global state, mutation), which one is this app's history (Exercise 1's bugs) most clearly an example of? Explain the connection directly.
+- [x] For each of the 2 issues you fixed: which of the five named categories did it fall into, and how did you notice it (a visible bug, a code-review-style re-read, React DevTools, something else)?
+
+  #1 is duplicated state, noticed by deliberately reproducing it live (not an accidental discovery) after re-reading the Demo 6 code and realizing nothing ever wrote the status change to `localStorage`. 
+  
+  #2 is stale state, noticed in a code-review-style re-read, not a visible symptom. Apparently React 19 actually removed the console warning for calling `setState` on an unmounted component that older React versions used to show, so there was nothing on screen or in the console pointing at i.
+
+- [x] Of the five named problems (duplicated state, stale state, prop drilling, unnecessary global state, mutation), which one is this app's history (Exercise 1's bugs) most clearly an example of? Explain the connection directly.
+
+  Duplicated state. Exercise 1 Demo 2's bug was `state.filteredEvidence = state.allEvidence`, two variable names for what was supposed to be two independent facts (the full list vs. the filtered view), aliased into one shared array that a `.sort()` call then corrupted for both. 
+  
+  The evidence-overrides bug I just fixed in this demo is the same root problem wearing a different costume: not two names for one array, but the same real-world fact (one evidence item's status) represented by 3 separate, never-synced in-memory copies, one per page. Different mechanism (aliasing vs. independent fetches), same category: a single real-world fact that the code lets drift into multiple disagreeing representations.
 
 ---
 
