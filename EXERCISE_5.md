@@ -178,7 +178,7 @@ That's the "possibly hard-to-track" part, it depends entirely on whether somethi
 
     I moved the bookmarks state (the useState<string[]> array) and the handleToggleBookmark function into App.tsx.
 
-  `App` ([js/react/App.tsx](js/react/App.tsx)) is the lowest common ancestor — `DashboardPage`, `EvidencePage`, and `WorkspacePage` are siblings under its `<Routes>`, each mounted only while its own route matches. The `useState<string[]>(readBookmarks)` and `handleToggleBookmark` moved there (App.tsx:36-72), and are passed down as `bookmarks`/`onToggleBookmark` props to the 3 routes that need them (App.tsx:103-116).
+  `App` ([js/react/App.tsx](js/react/App.tsx)) is the lowest common ancestor — `DashboardPage`, `EvidencePage`, and `WorkspacePage` are siblings under its `<Routes>`, each mounted only while its own route matches. The `useState<string[]>(readBookmarks)` and `handleToggleBookmark` moved there ([App.tsx:63-73](js/react/App.tsx)), and are passed down as `bookmarks`/`onToggleBookmark` props to the 3 routes that need them ([App.tsx:106-121](js/react/App.tsx)).
 
 - [x] Confirm that toggling a bookmark from the Evidence view is immediately reflected on the Dashboard the next time it's rendered.
   
@@ -190,7 +190,7 @@ That's the "possibly hard-to-track" part, it depends entirely on whether somethi
 
   Mechanically: delete the `useState` from the child, add it to a shared ancestor instead, and pass the value (and a setter/callback for changing it) down as props. Before: `EvidencePage` owned `useState<string[]>`, while `DashboardPage`/`WorkspacePage` each independently called their own `localStorage.getItem` in their render body — three separate reads of one key, no shared value in memory. 
   
-  Now: only `App` calls `useState`/`readBookmarks` ([App.tsx:36](js/react/App.tsx)), and the other three components receive `bookmarks` (and `EvidencePage` also `onToggleBookmark`) purely as props.
+  Now: only `App` calls `useState`/`readBookmarks` ([App.tsx:63](js/react/App.tsx)), and the other three components receive `bookmarks` (and `EvidencePage` also `onToggleBookmark`) purely as props.
 
 - [x] What would go wrong (be specific) if you had instead kept a separate `useState` for bookmarks inside each of the Dashboard, Evidence, and Workspace components?
 
@@ -204,14 +204,27 @@ That's the "possibly hard-to-track" part, it depends entirely on whether somethi
 
 **Tasks**
 
-- [ ] From wherever you lifted bookmark state to (Demo 5), pass a callback (e.g. `onToggleBookmark`) down through props to every component that needs to trigger a change, rather than letting child components reach up and mutate anything themselves.
-- [ ] Do the same for at least one more interaction that needs to affect state owned by a parent (e.g. saving a note, or changing evidence review status from the detail view).
+- [x] From wherever you lifted bookmark state to (Demo 5), pass a callback (e.g. `onToggleBookmark`) down through props to every component that needs to trigger a change, rather than letting child components reach up and mutate anything themselves.
+
+  Already in place since Demo 5: `App` defines `handleToggleBookmark` ([App.tsx:67-73](js/react/App.tsx)) and passes it to `EvidencePage` as `onToggleBookmark`, which passes it straight through to each `EvidenceCard` ([EvidencePage.tsx:204](js/react/evidence/EvidencePage.tsx)). `EvidenceCard`'s bookmark button calls it directly ([EvidenceCard.tsx:41](js/react/evidence/EvidenceCard.tsx)) — it never touches `bookmarks` itself.
+
+- [x] Do the same for at least one more interaction that needs to affect state owned by a parent (e.g. saving a note, or changing evidence review status from the detail view).
+
+  Wired "changing evidence review status from the detail view", the example this task names. `EvidencePage` owns `data.evidence` and defines `handleEvidenceStatusChange`/`handleEvidenceRelevanceChange` ([EvidencePage.tsx:140-158](js/react/evidence/EvidencePage.tsx)), each updating `data` immutably via `.map()`. Both are passed to `EvidenceDetail` as `onStatusChange`/`onRelevanceChange` ([EvidenceDetail.tsx](js/react/evidence/EvidenceDetail.tsx)), which now has real controlled `<select>`s (`value`, not `defaultValue`) that call them.
 
 **Questions** (depend on the tasks above)
 
-- [ ] Why can't (or shouldn't) a deeply nested child component just directly modify state that lives in a distant ancestor? What does passing a callback down get you instead?
-- [ ] Trace one callback all the way from where it's defined (with the actual `useState` setter
-inside it) down to the component that calls it. How many component layers does it pass through, and does that feel like "too many". Is prop drilling becoming a real problem here?
+- [x] Why can't (or shouldn't) a deeply nested child component just directly modify state that lives in a distant ancestor? What does passing a callback down get you instead?
+
+  Because most of the times it can't. A child only receives what its parent passes as props, and a parent's own `useState` setter isn't one of those unless the parent explicitly hands it down. 
+  
+  Passing a named callback instead (`onStatusChange`, not `setData`) means the child declares *intent* ("I want to change the status") while the parent keeps full control of how that happens — the immutable `.map()` update stays in one place, not duplicated or done wrong in every child that needs to trigger it.
+
+- [x] Trace one callback all the way from where it's defined (with the actual `useState` setter inside it) down to the component that calls it. How many component layers does it pass through, and does that feel like "too many". Is prop drilling becoming a real problem here?
+
+  App.tsx -> Line 63 and Line 63-73 ()
+
+  `onToggleBookmark`: defined in `App` (closes over `setBookmarks`) → passed to `EvidencePage` as a prop → passed straight through, unchanged, to `EvidenceCard` as a prop → called from the card's button `onClick`. 3 layers (App → EvidencePage → EvidenceCard), and the middle one (`EvidencePage`) doesn't use it at all, just relays it. That "pass-through, unused at this layer" step is exactly what prop drilling means, and with only one callback and 3 layers it's not a real problem yet
 
 ---
 

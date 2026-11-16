@@ -1,12 +1,15 @@
 // ---------------------------------------------------------------------
 // EVIDENCE DETAIL - Exercise 5 Demo 1
 // ---------------------------------------------------------------------
-// Same fields as the vanilla renderEvidenceDetail() in js/views/evidence.ts,
-// minus the two already-wired status/relevance <select>s: those stay
-// static (defaultValue, no onChange) for now, deliberately out of this
-// demo's scope - Demo 6's own task list names "changing evidence review
-// status from the detail view" as the example for passing a callback
-// down to a child, so that's revisited there, not here.
+// Same fields as the vanilla renderEvidenceDetail() in js/views/evidence.ts.
+//
+// Demo 6: the status/relevance <select>s are now controlled and wired,
+// via onStatusChange/onRelevanceChange callbacks passed down from
+// EvidencePage - the actual `evidence` array they change lives there,
+// not here, so this component can't update it directly. It just calls
+// the callback with (evidence.id, newValue); EvidencePage owns the
+// immutable update. Same "callback down, not a reach-up mutation"
+// shape as EvidenceCard's onToggleBookmark.
 //
 // The note textarea and "Save note" button ARE one of this demo's real
 // migrated handlers: vanilla read the textarea's value back off the DOM
@@ -26,6 +29,8 @@ interface EvidenceDetailProps {
   people: Person[];
   locations: Location[];
   onClose: () => void;
+  onStatusChange: (evidenceId: string, status: string) => void;
+  onRelevanceChange: (evidenceId: string, relevance: string) => void;
 }
 
 function readNotesStore(): Record<string, string> {
@@ -49,6 +54,8 @@ export default function EvidenceDetail({
   people,
   locations,
   onClose,
+  onStatusChange,
+  onRelevanceChange,
 }: EvidenceDetailProps) {
   const [noteDraft, setNoteDraft] = useState(() => readNotesStore()[evidence.id] || "");
   const [savedNote, setSavedNote] = useState(() => readNotesStore()[evidence.id] || "");
@@ -111,7 +118,10 @@ export default function EvidenceDetail({
 
       <div className="detail-field">
         <strong>Review status</strong>
-        <select defaultValue={evidence.status}>
+        <select
+          value={evidence.status}
+          onChange={(event) => onStatusChange(evidence.id, event.target.value)}
+        >
           <option value="unreviewed">Unreviewed</option>
           <option value="reviewed">Reviewed</option>
           <option value="flagged">Flagged</option>
@@ -120,7 +130,10 @@ export default function EvidenceDetail({
 
       <div className="detail-field">
         <strong>Relevance</strong>
-        <select defaultValue={evidence.relevance}>
+        <select
+          value={evidence.relevance}
+          onChange={(event) => onRelevanceChange(evidence.id, event.target.value)}
+        >
           <option value="unknown">Unknown</option>
           <option value="relevant">Relevant</option>
           <option value="irrelevant">Irrelevant</option>

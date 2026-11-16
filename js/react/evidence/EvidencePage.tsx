@@ -31,6 +31,17 @@
 // the vanilla version (js/views/evidence.ts), just without ever storing
 // the result itself. There's deliberately no separate
 // `filteredEvidence` state here - see EXERCISE_5.md Demo 4.
+//
+// Demo 6: the detail view's status/relevance selects, static since
+// Demo 1, are now wired too. `data.evidence` lives in this component,
+// not EvidenceDetail, so EvidenceDetail can't update it directly -
+// handleEvidenceStatusChange/handleEvidenceRelevanceChange below are
+// passed down as onStatusChange/onRelevanceChange, the same
+// "callback down, not a reach-up mutation" shape bookmarks already use
+// via App.tsx. Both update `data` immutably (a new evidence array via
+// .map(), never evidence.status = ... in place), so the card's badge
+// and the derived visibleEvidence list both pick up the change on the
+// very next render, same as every other derived value in this file.
 import { useEffect, useState } from "react";
 import type { Evidence, Person, Location } from "../../types.js";
 import { evidenceMentionsPerson } from "../../utils.js";
@@ -126,6 +137,28 @@ export default function EvidencePage({ bookmarks, onToggleBookmark }: EvidencePa
       return sortOrder === "date-asc" ? diff : -diff;
     });
 
+  function handleEvidenceStatusChange(evidenceId: string, status: string) {
+    setData((prev) =>
+      prev
+        ? {
+            ...prev,
+            evidence: prev.evidence.map((ev) => (ev.id === evidenceId ? { ...ev, status } : ev)),
+          }
+        : prev,
+    );
+  }
+
+  function handleEvidenceRelevanceChange(evidenceId: string, relevance: string) {
+    setData((prev) =>
+      prev
+        ? {
+            ...prev,
+            evidence: prev.evidence.map((ev) => (ev.id === evidenceId ? { ...ev, relevance } : ev)),
+          }
+        : prev,
+    );
+  }
+
   function handleClearFilters() {
     setSearchTerm("");
     setFilterType("");
@@ -180,6 +213,8 @@ export default function EvidencePage({ bookmarks, onToggleBookmark }: EvidencePa
           people={data.people}
           locations={data.locations}
           onClose={() => setSelectedEvidenceId(null)}
+          onStatusChange={handleEvidenceStatusChange}
+          onRelevanceChange={handleEvidenceRelevanceChange}
         />
       )}
     </div>

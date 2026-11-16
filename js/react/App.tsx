@@ -19,7 +19,6 @@
 // (js/router.ts) already relied on, just via a real routing library
 // instead of hand-rolled hashchange listeners.
 
-
 // Exercise 5, Demo 5: bookmark state lives here now, not inside
 // EvidencePage. App is the lowest common ancestor of every component
 // that reads or changes it (Dashboard's count, Evidence's cards,
