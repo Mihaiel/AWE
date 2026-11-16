@@ -114,14 +114,33 @@ confidence range, explanation and alternative textareas) fully controlled.
 
 **Tasks**
 
-- [ ] Find at least one place where your first instinct (or an early draft) would have mutated state directly (e.g. `evidence.bookmarked = true`, or pushing directly into a state array), and rewrite it as an immutable update.
-- [ ] Add a case to your bookmark toggle logic that specifically exercises this: toggling a bookmark must produce a *new* array/object, not a mutated one.
+- [x] Find at least one place where your first instinct (or an early draft) would have mutated state directly (e.g. `evidence.bookmarked = true`, or pushing directly into a state array), and rewrite it as an immutable update.
+
+    Immutable update = means producing a brand-new object/array with the change already applied, instead of modifying the existing one in place.
+
+      `handleToggleBookmark` in [EvidencePage.tsx:103-109](js/react/evidence/EvidencePage.tsx:103) already used `.filter()`/spread from Demo 1, never actually shipped a mutating version.
+      
+       Wrote the "first instinct" version anyway as `handleToggleBookmarkBuggy`, kept commented out right after the real one ([EvidencePage.tsx:111-130](js/react/evidence/EvidencePage.tsx:111)), same convention as Exercise 4 Demo 4's `KeyDemoThrowaway`: it uses `.push()`/`.splice()` on `bookmarks` directly, then calls `setBookmarks(bookmarks)` with that same mutated array.
+
+- [x] Add a case to your bookmark toggle logic that specifically exercises this: toggling a bookmark must produce a *new* array/object, not a mutated one.
+
+      Verified live, both directions. Real handler: clicked a star on, then off, twice in a row, each click visibly flipped the star immediately, two genuinely new array references, two real re-renders. Buggy handler (temporarily swapped into `onToggleBookmark` to test): clicked a star, nothing changed on screen, but `localStorage.getItem("remotion_bookmarks")` showed the id *was* added, proving the state value changed in memory, React just never re-rendered. Swapped back to the real handler afterward.
 
 **Questions** (depend on the tasks above)
 
-- [ ] Why does mutating state directly in React sometimes still appear to "work" on screen, but
+- [x] Why does mutating state directly in React sometimes still appear to "work" on screen, but
 cause real (possibly hard-to-track) bugs elsewhere? What is React actually comparing when it decides whether to re-render?
-- [ ] The original vanilla app had a real bug where sorting evidence mutated the master array via a shared reference, permanently losing the original order. Show how your React state update for the equivalent action (bookmark toggle, or sort, if you implement it) avoids that exact class of bug. Be specific about what's different, not just "React handles it."
+
+`useState`'s setter bails out of re-rendering when `Object.is(prevState, nextState)` is `true`, a cheap reference check, not a deep comparison. Mutating an array/object in place and passing that exact same reference back into the setter makes this check `true` every time, so React skips the re-render, the UI simply never updates, confirmed live above with the bookmark star.
+
+It can look like it "works" when something else in the app happens to trigger an unrelated re-render around the same time (a parent re-rendering, another state update in the same batch): React repaints using whatever the mutated object currently holds, so the change appears on screen, but only as a side effect of a different render, not because this update was ever actually scheduled. 
+That's the "possibly hard-to-track" part, it depends entirely on whether something unrelated happened to re-render nearby.
+
+- [x] The original vanilla app had a real bug where sorting evidence mutated the master array via a shared reference, permanently losing the original order. Show how your React state update for the equivalent action (bookmark toggle, or sort, if you implement it) avoids that exact class of bug. Be specific about what's different, not just "React handles it."
+
+      Found the real bug in [EXERCISE_1.md](EXERCISE_1.md) (Demo 2 there): `loadEvidenceData()` in the original `js/dataLoader.js` did `state.filteredEvidence = state.allEvidence;`, an alias, not a copy, both names pointed at the exact same array. `handleSortChange()` then called `.sort()` (an in-place mutator) on `filteredEvidence`, which silently reordered `allEvidence` too, since they were the same array underneath. The vanilla fix was `state.allEvidence.slice()`, one explicit shallow copy at the one place the alias was created.
+
+      My bookmark toggle can't have this exact bug class at all, not because React "handles" aliasing, but because the *shape* of the update is different: `bookmarks.filter(...)` and `[...bookmarks, id]` each allocate a brand new array every single call, there is no step anywhere that assigns one variable to point at another's existing array (no `state.filteredEvidence = state.allEvidence` equivalent exists in this code at all). The vanilla bug needed two things to combine: an alias, and a mutator run on one of the two names. My code never creates the alias in the first place, so there's no shared reference left for any mutator to damage, structurally, not just "React re-renders so it's fine."
 
 ---
 
