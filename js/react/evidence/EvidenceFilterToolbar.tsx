@@ -12,11 +12,13 @@
 // uncontrolled DOM input happens to display. See EXERCISE_5.md Demo 2
 // for what breaks if the `onChange` below is removed but `value` stays.
 //
-// The other 5 selects + sort + "Clear filters" are deliberately still
-// static: real options, no onChange, same "visually complete, not
-// wired yet" allowance Exercise 4's Timeline toolbar used. Demo 4 wires
-// these into the actual filtered/sorted list; Demo 7 moves all of this
-// into one useReducer once there are 7+ related values to manage.
+// Demo 4: the other 5 selects + sort + "Clear filters" are now wired
+// too, each a controlled value/onChange pair same as the search box
+// above. Still 7 separate props/callbacks rather than one object,
+// because this component itself holds no state - EvidencePage owns
+// all of it and derives the visible list from it every render (see
+// EXERCISE_5.md Demo 4). Demo 7 is what moves EvidencePage's own 6
+// separate useState calls for this into one useReducer, not this file.
 import type { Person, Location } from "../../types.js";
 
 interface EvidenceFilterToolbarProps {
@@ -24,7 +26,20 @@ interface EvidenceFilterToolbarProps {
   evidenceTypes: string[];
   people: Person[];
   locations: Location[];
+  filterType: string;
+  filterPersonId: string;
+  filterLocationId: string;
+  filterStatus: string;
+  filterRelevance: string;
+  sortOrder: string;
   onSearchChange: (term: string) => void;
+  onFilterTypeChange: (type: string) => void;
+  onFilterPersonChange: (personId: string) => void;
+  onFilterLocationChange: (locationId: string) => void;
+  onFilterStatusChange: (status: string) => void;
+  onFilterRelevanceChange: (relevance: string) => void;
+  onSortChange: (sort: string) => void;
+  onClearFilters: () => void;
 }
 
 export default function EvidenceFilterToolbar({
@@ -32,7 +47,20 @@ export default function EvidenceFilterToolbar({
   evidenceTypes,
   people,
   locations,
+  filterType,
+  filterPersonId,
+  filterLocationId,
+  filterStatus,
+  filterRelevance,
+  sortOrder,
   onSearchChange,
+  onFilterTypeChange,
+  onFilterPersonChange,
+  onFilterLocationChange,
+  onFilterStatusChange,
+  onFilterRelevanceChange,
+  onSortChange,
+  onClearFilters,
 }: EvidenceFilterToolbarProps) {
   return (
     <div className="toolbar">
@@ -52,7 +80,11 @@ export default function EvidenceFilterToolbar({
         <label htmlFor="filterType" className="visually-hidden">
           Filter by type
         </label>
-        <select id="filterType">
+        <select
+          id="filterType"
+          value={filterType}
+          onChange={(event) => onFilterTypeChange(event.target.value)}
+        >
           <option value="">All types</option>
           {evidenceTypes.map((type) => (
             <option key={type} value={type}>
@@ -64,7 +96,11 @@ export default function EvidenceFilterToolbar({
         <label htmlFor="filterPerson" className="visually-hidden">
           Filter by person
         </label>
-        <select id="filterPerson">
+        <select
+          id="filterPerson"
+          value={filterPersonId}
+          onChange={(event) => onFilterPersonChange(event.target.value)}
+        >
           <option value="">All people</option>
           {people.map((person) => (
             <option key={person.id} value={person.id}>
@@ -76,7 +112,11 @@ export default function EvidenceFilterToolbar({
         <label htmlFor="filterLocation" className="visually-hidden">
           Filter by location
         </label>
-        <select id="filterLocation">
+        <select
+          id="filterLocation"
+          value={filterLocationId}
+          onChange={(event) => onFilterLocationChange(event.target.value)}
+        >
           <option value="">All locations</option>
           {locations.map((location) => (
             <option key={location.id} value={location.id}>
@@ -89,7 +129,11 @@ export default function EvidenceFilterToolbar({
         <label htmlFor="filterStatus" className="visually-hidden">
           Filter by status
         </label>
-        <select id="filterStatus">
+        <select
+          id="filterStatus"
+          value={filterStatus}
+          onChange={(event) => onFilterStatusChange(event.target.value)}
+        >
           <option value="">All statuses</option>
           <option value="unreviewed">Unreviewed</option>
           <option value="reviewed">Reviewed</option>
@@ -99,7 +143,11 @@ export default function EvidenceFilterToolbar({
         <label htmlFor="filterRelevance" className="visually-hidden">
           Filter by relevance
         </label>
-        <select id="filterRelevance">
+        <select
+          id="filterRelevance"
+          value={filterRelevance}
+          onChange={(event) => onFilterRelevanceChange(event.target.value)}
+        >
           <option value="">All relevance</option>
           <option value="unknown">Unknown</option>
           <option value="relevant">Relevant</option>
@@ -109,14 +157,18 @@ export default function EvidenceFilterToolbar({
         <label htmlFor="sortEvidence" className="visually-hidden">
           Sort evidence
         </label>
-        <select id="sortEvidence">
+        <select
+          id="sortEvidence"
+          value={sortOrder}
+          onChange={(event) => onSortChange(event.target.value)}
+        >
           <option value="date-desc">Newest first</option>
           <option value="date-asc">Oldest first</option>
           <option value="title-asc">Title (A–Z)</option>
           <option value="title-desc">Title (Z–A)</option>
         </select>
 
-        <button type="button" className="btn btn-secondary">
+        <button type="button" className="btn btn-secondary" onClick={onClearFilters}>
           Clear filters
         </button>
       </div>

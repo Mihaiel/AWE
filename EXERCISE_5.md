@@ -148,13 +148,25 @@ That's the "possibly hard-to-track" part, it depends entirely on whether somethi
 
 **Tasks**
 
-- [ ] Implement the Evidence Catalogue's filtering/sorting so that the *filtered, sorted list is computed from* the full evidence list and the current filter/sort state, every render. Never stored as its own separate piece of state that could drift out of sync.
-- [ ] Do the same for the Dashboard's bookmark count and the Workspace's bookmarked-items list: both should be derived from the same single source of truth for bookmarks, not duplicated state.
+- [x] Implement the Evidence Catalogue's filtering/sorting so that the *filtered, sorted list is computed from* the full evidence list and the current filter/sort state, every render. Never stored as its own separate piece of state that could drift out of sync.
+
+  The 5 remaining filter selects (type/person/location/status/relevance) and sort each got their own `useState` for "what the user picked" in [js/react/evidence/EvidencePage.tsx:56-62](js/react/evidence/EvidencePage.tsx). `visibleEvidence` ([EvidencePage.tsx:94-112](js/react/evidence/EvidencePage.tsx)) is computed from `data.evidence` plus all of those, every render, via `.filter().sort()` — there is no `filteredEvidence` state anywhere. "Clear filters" ([EvidenceFilterToolbar.tsx](js/react/evidence/EvidenceFilterToolbar.tsx)) resets all of them at once.
+
+- [x] Do the same for the Dashboard's bookmark count and the Workspace's bookmarked-items list: both should be derived from the same single source of truth for bookmarks, not duplicated state.
+
+  Both already did this since Demo 1: `DashboardPage.tsx`'s `bookmarksCount` ([DashboardPage.tsx:96](js/react/dashboard/DashboardPage.tsx)) and `WorkspacePage.tsx`'s `bookmarkedEvidence` ([WorkspacePage.tsx:119-120](js/react/workspace/WorkspacePage.tsx)) both call a `read...()` helper that reads `localStorage` fresh in the render body, not from a `useState`. Verified live: bookmarking 2 items from Evidence, then visiting Dashboard, shows "2" immediately with no stale/cached value.
 
 **Questions** (depend on the tasks above)
 
-- [ ] What's the rule for deciding whether something belongs in `useState` versus being computed inline (or via `useMemo`) during render? Apply that rule to the filtered evidence list and justify your answer.
-- [ ] The vanilla app had two related bugs here: a dashboard bookmark count that could go stale (because it only re-rendered on a view's first visit), and a `filteredEvidence` variable that was sometimes literally the *same array reference* as the master list. Explain, concretely, why deriving these values during render instead of storing them makes **both** of those bug classes structurally impossible, not just less likely.
+- [x] What's the rule for deciding whether something belongs in `useState` versus being computed inline (or via `useMemo`) during render? Apply that rule to the filtered evidence list and justify your answer.
+
+  If a value can be calculated from other state/props you already have, compute it inline, so don't store it. Only put something in `useState` if it's information React can't otherwise reconstruct (raw user input, fetched data).
+  
+   The filtered/sorted list is 100% calculable from `data.evidence` + the filter/sort state, so it stays a plain expression in the render body, not its own `useState`.
+
+- [x] The vanilla app had two related bugs here: a dashboard bookmark count that could go stale (because it only re-rendered on a view's first visit), and a `filteredEvidence` variable that was sometimes literally the *same array reference* as the master list. Explain, concretely, why deriving these values during render instead of storing them makes **both** of those bug classes structurally impossible, not just less likely.
+
+  Both vanilla bugs come from writing a derived value into a stored variable once and then forgetting to refresh it. If there is no stored variable to forget to refresh — it's a `const` recomputed every render — there is nothing that can go stale, and nothing that can alias the source array either, since `.filter()`/`.sort()` here always build/return a fresh array rather than reusing `data.evidence`'s reference.
 
 ---
 

@@ -26,9 +26,20 @@
 // "first instinct" version this deliberately isn't, kept in the repo
 // to swap in live rather than deleted, same convention as Exercise 4
 // Demo 4's KeyDemoThrowaway.
+//
+// Demo 4: the 5 remaining filter selects + sort, left
+// static since Demo 1, are now wired. Each one is its own useState -
+// genuine stored state, since "what the user picked" can't be computed
+// from anything else. `visibleEvidence` below is still the one derived
+// value computed from data.evidence + searchTerm + all 5 filters +
+// sortOrder, every render, exactly like getFilteredEvidence() did in
+// the vanilla version (js/views/evidence.ts), just without ever storing
+// the result itself. There's deliberately no separate
+// `filteredEvidence` state here - see EXERCISE_5.md Demo 4.
 import { useEffect, useState } from "react";
 import type { Evidence, Person, Location } from "../../types.js";
 import { STORAGE_KEY_BOOKMARKS } from "../../storage.js";
+import { evidenceMentionsPerson } from "../../utils.js";
 import EvidenceFilterToolbar from "./EvidenceFilterToolbar.js";
 import EvidenceCard from "./EvidenceCard.js";
 import EvidenceDetail from "./EvidenceDetail.js";
@@ -57,6 +68,12 @@ export default function EvidencePage() {
   const [data, setData] = useState<EvidenceCatalogueData | null>(null);
   const [bookmarks, setBookmarks] = useState<string[]>(readBookmarks);
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState("");
+  const [filterPersonId, setFilterPersonId] = useState("");
+  const [filterLocationId, setFilterLocationId] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [filterRelevance, setFilterRelevance] = useState("");
+  const [sortOrder, setSortOrder] = useState("date-desc");
   const [selectedEvidenceId, setSelectedEvidenceId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -93,12 +110,47 @@ export default function EvidencePage() {
 
   const evidenceTypes = [...new Set(data.evidence.map((ev) => ev.type.toLowerCase()))];
 
+  // One derived value, recomputed from data.evidence + every filter/sort
+  // piece of state above, every render - never its own useState. Mirrors
+  // getFilteredEvidence()/handleSortChange() in js/views/evidence.ts,
+  // just as one expression instead of a loop plus a separate in-place
+  // .sort() call. See EXERCISE_5.md Demo 4 for why this structurally
+  // rules out the vanilla app's two related bugs (stale bookmark count,
+  // filteredEvidence aliasing allEvidence).
   const term = searchTerm.toLowerCase().trim();
-  const visibleEvidence = term
-    ? data.evidence.filter((ev) =>
-        (ev.title + " " + ev.summary + " " + ev.tags.join(" ")).toLowerCase().includes(term),
-      )
-    : data.evidence;
+  const filterPerson = filterPersonId ? data.people.find((p) => p.id === filterPersonId) : null;
+  const visibleEvidence = data.evidence
+    .filter((ev) => {
+      if (
+        term &&
+        !(ev.title + " " + ev.summary + " " + ev.tags.join(" ")).toLowerCase().includes(term)
+      ) {
+        return false;
+      }
+      if (filterType && ev.type.toLowerCase() !== filterType) return false;
+      if (filterPersonId && (!filterPerson || !evidenceMentionsPerson(ev, filterPerson)))
+        return false;
+      if (filterLocationId && !ev.locationIds.includes(filterLocationId)) return false;
+      if (filterStatus && (ev.status || "").toLowerCase() !== filterStatus) return false;
+      if (filterRelevance && (ev.relevance || "").toLowerCase() !== filterRelevance) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortOrder === "title-asc") return a.title.localeCompare(b.title);
+      if (sortOrder === "title-desc") return b.title.localeCompare(a.title);
+      const diff = new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+      return sortOrder === "date-asc" ? diff : -diff;
+    });
+
+  function handleClearFilters() {
+    setSearchTerm("");
+    setFilterType("");
+    setFilterPersonId("");
+    setFilterLocationId("");
+    setFilterStatus("");
+    setFilterRelevance("");
+    setSortOrder("date-desc");
+  }
 
   function handleToggleBookmark(evidenceId: string) {
     const next = bookmarks.includes(evidenceId)
@@ -140,7 +192,20 @@ export default function EvidencePage() {
         evidenceTypes={evidenceTypes}
         people={data.people}
         locations={data.locations}
+        filterType={filterType}
+        filterPersonId={filterPersonId}
+        filterLocationId={filterLocationId}
+        filterStatus={filterStatus}
+        filterRelevance={filterRelevance}
+        sortOrder={sortOrder}
         onSearchChange={setSearchTerm}
+        onFilterTypeChange={setFilterType}
+        onFilterPersonChange={setFilterPersonId}
+        onFilterLocationChange={setFilterLocationId}
+        onFilterStatusChange={setFilterStatus}
+        onFilterRelevanceChange={setFilterRelevance}
+        onSortChange={setSortOrder}
+        onClearFilters={handleClearFilters}
       />
       <div className="evidence-grid">
         {visibleEvidence.length === 0 && <p>No evidence matches the current filters.</p>}
