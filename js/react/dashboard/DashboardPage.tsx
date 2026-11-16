@@ -11,6 +11,7 @@
 import { useEffect, useState } from "react";
 import type { Case, Evidence, Person, Location, TimelineEvent } from "../../types.js";
 import { formatDate, getStatusBadgeClass } from "../../utils.js";
+import { useBookmarks } from "../BookmarksContext.js";
 import CaseSummaryCard from "./CaseSummaryCard.js";
 import StatCard from "../components/StatCard.js";
 import ReviewProgressBar from "../components/ReviewProgressBar.js";
@@ -25,11 +26,8 @@ interface DashboardData {
   timeline: TimelineEvent[];
 }
 
-interface DashboardPageProps {
-  bookmarks: string[];
-}
-
-export default function DashboardPage({ bookmarks }: DashboardPageProps) {
+export default function DashboardPage() {
+  const { bookmarks } = useBookmarks();
   const [data, setData] = useState<DashboardData | null>(null);
 
   // Empty dependency array: re-fetches fresh every time this component
@@ -82,9 +80,11 @@ export default function DashboardPage({ bookmarks }: DashboardPageProps) {
   // component re-renders (or remounts) with different evidence data,
   // these are correct immediately, no stale-numbers risk. bookmarksCount
   // used to come from its own localStorage read here; Exercise 5 Demo 5
-  // lifted the bookmarks array itself up to App.tsx, so this is now just
-  // `bookmarks.length` off the prop - still derived, not stored, just
-  // sourced from one shared array instead of an independent read.
+  // lifted the bookmarks array up to App.tsx (received as a prop), then
+  // Demo 8 moved it again into BookmarksContext (received via
+  // useBookmarks() above) - this is still just `bookmarks.length`
+  // either way, still derived, not stored, just sourced one hop
+  // differently.
   const reviewedCount = data.evidence.filter(
     (ev) => (ev.status || "").toLowerCase() === "reviewed",
   ).length;

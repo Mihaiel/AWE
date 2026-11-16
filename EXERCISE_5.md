@@ -275,16 +275,39 @@ That's the "possibly hard-to-track" part, it depends entirely on whether somethi
 
 **Tasks**
 
-- [ ] Pick one piece of state from this exercise (bookmark state is a strong candidate, given Demo 6's prop-drilling question) and actually implement it via React Context, replacing the prop-drilled version.
-- [ ] Explain a short, honest decision: for *this specific app*, at its *current* size, is Context actually the right call for this state, or is prop-drilling (or lifting state, without
-Context) good enough? Be ready to defend whichever answer you land on.
+- [x] Pick one piece of state from this exercise (bookmark state is a strong candidate, given Demo 6's prop-drilling question) and actually implement it via React Context, replacing the prop-drilled version.
+
+  Picked bookmark state, as suggested. New file [js/react/BookmarksContext.tsx](js/react/BookmarksContext.tsx) holds `BookmarksContext`, a `BookmarksProvider` component (owns the `useState`/`localStorage` read-write, unchanged from Demo 5/App.tsx), and a `useBookmarks()` hook.
+  
+   `App.tsx` now just wraps the whole router in `<BookmarksProvider>` ([App.tsx:46](js/react/App.tsx)) with no bookmarks state or props on any `<Route>` ([App.tsx:55-68](js/react/App.tsx)). `DashboardPage`, `EvidencePage`, and `WorkspacePage` each call `useBookmarks()` directly instead of receiving a prop.
+
+- [x] Explain a short, honest decision: for *this specific app*, at its *current* size, is Context actually the right call for this state, or is prop-drilling (or lifting state, without Context) good enough? Be ready to defend whichever answer you land on.
+
+  Prop-drilling was already fine here in my opinion with 3 layers, 1 callback.
+  
+   The actual improvement Context buys in this app isn't solving a drilling crisis, it's removing bookmarks from `App.tsx`'s job description: before, `App` had to hold domain data it has no interest in, purely to relay it to 3 routes. That's a real small win for this app's size.
 
 **Questions** (depend on the tasks above)
 
-- [ ] What problem does Context actually solve? What does it *not* solve (people sometimes expect it to behave like global state management. Where does that expectation break down)?
-- [ ] Revisit Demo 6's callback-depth question. Was prop drilling there actually a real problem
-(annoying, error-prone, worth solving) or a manageable one? What's your threshold for reaching for Context instead of just drilling one more level?
-- [ ] "Unnecessary global state" is explicitly named as a common problem. Could using Context here be an example of that, even though Context isn't technically the same as a global variable?
+- [x] What problem does Context actually solve? What does it *not* solve (people sometimes expect it to behave like global state management. Where does that expectation break down)?
+
+  Context solves exactly one problem: letting a component read a value from a distant ancestor without every component in between having to accept and relay it as a prop. It does *not* give you anything like global state management. There's still exactly one `useState` underneath it (inside `BookmarksProvider`), one single source of truth, scoped to wherever the `Provider` wraps. 
+  
+  People expect it to behave like a global store (read/write from anywhere, no provider needed, maybe some kind of persistence or selectors) — it has none of that. Call `useBookmarks()` outside a `BookmarksProvider` and it throws ([BookmarksContext.tsx:92-96](js/react/BookmarksContext.tsx)), it doesn't silently hand back some app-wide default.
+
+- [x] Revisit Demo 6's callback-depth question. Was prop drilling there actually a real problem (annoying, error-prone, worth solving) or a manageable one? What's your threshold for reaching for Context instead of just drilling one more level?
+
+  It was manageable, not really a real problem.
+  
+   Demo 6 had  3 layers, 1 callback, the only "pass-through" was `EvidencePage` relaying it once. 
+   
+   My threshold: reach for Context when a value needs to cross through an ancestor that has no business owning it architecturally (exactly what happened to `App.tsx` here), or when the same prop has to be threaded through 3+ genuinely unrelated branches of the tree.
+
+- [x] "Unnecessary global state" is explicitly named as a common problem. Could using Context here be an example of that, even though Context isn't technically the same as a global variable?
+
+  A little, yes, if taken too far. Bookmarks genuinely are read by 3 unrelated pages, so Context fits.
+  
+  I'd also moved the Evidence filters or the hypothesis draft into Context "while I'm at it". State that's only ever used by the one component that owns it, that would be the "unnecessary global state" problem in a different costume: making something reachable from everywhere when nothing outside its own component tree ever needed it, just because Context was already set up and available.
 
 ---
 

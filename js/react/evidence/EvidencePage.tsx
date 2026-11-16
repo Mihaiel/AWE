@@ -11,6 +11,10 @@
 // DashboardPage, and WorkspacePage, and arrive as props instead. See
 // App.tsx's own comment and EXERCISE_5.md Demo 5.
 //
+// Demo 8: and now they don't arrive as props at all - useBookmarks()
+// below reads them straight from BookmarksContext instead. See
+// BookmarksContext.tsx and EXERCISE_5.md Demo 8.
+//
 // Demo 2: searchTerm is now a real controlled input, see
 // EvidenceFilterToolbar.tsx's own comment. Still only filters by
 // title/summary/tag, mirroring the vanilla search handler's own scope,
@@ -52,6 +56,7 @@
 import { useEffect, useReducer, useState } from "react";
 import type { Evidence, Person, Location } from "../../types.js";
 import { evidenceMentionsPerson } from "../../utils.js";
+import { useBookmarks } from "../BookmarksContext.js";
 import EvidenceFilterToolbar from "./EvidenceFilterToolbar.js";
 import EvidenceCard from "./EvidenceCard.js";
 import EvidenceDetail from "./EvidenceDetail.js";
@@ -103,12 +108,8 @@ function filtersReducer(
   }
 }
 
-interface EvidencePageProps {
-  bookmarks: string[];
-  onToggleBookmark: (evidenceId: string) => void;
-}
-
-export default function EvidencePage({ bookmarks, onToggleBookmark }: EvidencePageProps) {
+export default function EvidencePage() {
+  const { bookmarks, toggleBookmark } = useBookmarks();
   const [data, setData] = useState<EvidenceCatalogueData | null>(null);
   const [filters, dispatch] = useReducer(filtersReducer, INITIAL_FILTERS);
   const {
@@ -250,7 +251,7 @@ export default function EvidencePage({ bookmarks, onToggleBookmark }: EvidencePa
             key={ev.id}
             evidence={ev}
             isBookmarked={bookmarks.includes(ev.id)}
-            onToggleBookmark={onToggleBookmark}
+            onToggleBookmark={toggleBookmark}
             onOpen={setSelectedEvidenceId}
           />
         ))}

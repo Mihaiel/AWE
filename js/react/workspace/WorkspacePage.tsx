@@ -9,10 +9,15 @@
 // bookmark/note handlers that live in EvidencePage/EvidenceDetail, via
 // the same localStorage keys.
 //
-// Demo 5: bookmarks arrive as a prop from App.tsx now, the common
+// Demo 5: bookmarks arrived as a prop from App.tsx, the common
 // ancestor this page shares with EvidencePage and DashboardPage,
 // instead of this page reading localStorage independently on its own
-// mount. See App.tsx's own comment and EXERCISE_5.md Demo 5.
+// mount.
+//
+// Demo 8: and now useBookmarks() reads them straight from
+// BookmarksContext instead of a prop - no change in behavior, just one
+// fewer hand-off along the way. See BookmarksContext.tsx and
+// EXERCISE_5.md Demo 8.
 //
 // Demo 2: the hypothesis form is one `useState<HypothesisDraft>`, not
 // 6 separate useState calls. These 6 fields are never read, reset, or
@@ -29,6 +34,7 @@
 import { useEffect, useState } from "react";
 import type { Evidence, Person } from "../../types.js";
 import { STORAGE_KEY_NOTES, STORAGE_KEY_HYPOTHESIS } from "../../storage.js";
+import { useBookmarks } from "../BookmarksContext.js";
 
 interface WorkspaceData {
   evidence: Evidence[];
@@ -74,11 +80,8 @@ function readNotes(): Record<string, string> {
   }
 }
 
-interface WorkspacePageProps {
-  bookmarks: string[];
-}
-
-export default function WorkspacePage({ bookmarks }: WorkspacePageProps) {
+export default function WorkspacePage() {
+  const { bookmarks } = useBookmarks();
   const [data, setData] = useState<WorkspaceData | null>(null);
   const [draft, setDraft] = useState<HypothesisDraft>(readHypothesisDraft);
   const [showSaved, setShowSaved] = useState(false);
