@@ -23,13 +23,11 @@
 // counterpart.
 //
 // Demo 4: the 5 remaining filter selects + sort, left
-// static since Demo 1, are now wired. Each one is its own useState -
-// genuine stored state, since "what the user picked" can't be computed
-// from anything else. `visibleEvidence` below is still the one derived
-// value computed from data.evidence + searchTerm + all 5 filters +
-// sortOrder, every render, exactly like getFilteredEvidence() did in
-// the vanilla version (js/views/evidence.ts), just without ever storing
-// the result itself. There's deliberately no separate
+// static since Demo 1, are now wired. `visibleEvidence` below is still
+// the one derived value computed from data.evidence + all the filter
+// state + sortOrder, every render, exactly like getFilteredEvidence()
+// did in the vanilla version (js/views/evidence.ts), just without ever
+// storing the result itself. There's deliberately no separate
 // `filteredEvidence` state here - see EXERCISE_5.md Demo 4.
 //
 // Demo 6: the detail view's status/relevance selects, static since
@@ -42,7 +40,16 @@
 // .map(), never evidence.status = ... in place), so the card's badge
 // and the derived visibleEvidence list both pick up the change on the
 // very next render, same as every other derived value in this file.
-import { useEffect, useState } from "react";
+//
+// Demo 7: the 6 separate useState calls for search/filters/sort Demo 4
+// introduced are now one useReducer. This domain is exactly the case
+// Demo 2's HypothesisDraft comment said would need one: several related
+// values that change individually (one SET_FILTER per select) but also
+// need a single named bulk operation (CLEAR_FILTERS resets all 6 at
+// once, consistently - no risk of resetting 5 of 6 and forgetting one).
+// filtersReducer/INITIAL_FILTERS/EvidenceFiltersAction live below,
+// outside the component since they don't depend on any props or state.
+import { useEffect, useReducer, useState } from "react";
 import type { Evidence, Person, Location } from "../../types.js";
 import { evidenceMentionsPerson } from "../../utils.js";
 import EvidenceFilterToolbar from "./EvidenceFilterToolbar.js";
@@ -55,6 +62,47 @@ interface EvidenceCatalogueData {
   locations: Location[];
 }
 
+interface EvidenceFiltersState {
+  searchTerm: string;
+  filterType: string;
+  filterPersonId: string;
+  filterLocationId: string;
+  filterStatus: string;
+  filterRelevance: string;
+  sortOrder: string;
+}
+
+type EvidenceFilterField = Exclude<keyof EvidenceFiltersState, "sortOrder">;
+
+type EvidenceFiltersAction =
+  | { type: "SET_FILTER"; field: EvidenceFilterField; value: string }
+  | { type: "SET_SORT"; sortOrder: string }
+  | { type: "CLEAR_FILTERS" };
+
+const INITIAL_FILTERS: EvidenceFiltersState = {
+  searchTerm: "",
+  filterType: "",
+  filterPersonId: "",
+  filterLocationId: "",
+  filterStatus: "",
+  filterRelevance: "",
+  sortOrder: "date-desc",
+};
+
+function filtersReducer(
+  state: EvidenceFiltersState,
+  action: EvidenceFiltersAction,
+): EvidenceFiltersState {
+  switch (action.type) {
+    case "SET_FILTER":
+      return { ...state, [action.field]: action.value };
+    case "SET_SORT":
+      return { ...state, sortOrder: action.sortOrder };
+    case "CLEAR_FILTERS":
+      return INITIAL_FILTERS;
+  }
+}
+
 interface EvidencePageProps {
   bookmarks: string[];
   onToggleBookmark: (evidenceId: string) => void;
@@ -62,13 +110,16 @@ interface EvidencePageProps {
 
 export default function EvidencePage({ bookmarks, onToggleBookmark }: EvidencePageProps) {
   const [data, setData] = useState<EvidenceCatalogueData | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterType, setFilterType] = useState("");
-  const [filterPersonId, setFilterPersonId] = useState("");
-  const [filterLocationId, setFilterLocationId] = useState("");
-  const [filterStatus, setFilterStatus] = useState("");
-  const [filterRelevance, setFilterRelevance] = useState("");
-  const [sortOrder, setSortOrder] = useState("date-desc");
+  const [filters, dispatch] = useReducer(filtersReducer, INITIAL_FILTERS);
+  const {
+    searchTerm,
+    filterType,
+    filterPersonId,
+    filterLocationId,
+    filterStatus,
+    filterRelevance,
+    sortOrder,
+  } = filters;
   const [selectedEvidenceId, setSelectedEvidenceId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -159,16 +210,6 @@ export default function EvidencePage({ bookmarks, onToggleBookmark }: EvidencePa
     );
   }
 
-  function handleClearFilters() {
-    setSearchTerm("");
-    setFilterType("");
-    setFilterPersonId("");
-    setFilterLocationId("");
-    setFilterStatus("");
-    setFilterRelevance("");
-    setSortOrder("date-desc");
-  }
-
   const selectedEvidence = data.evidence.find((ev) => ev.id === selectedEvidenceId) ?? null;
 
   return (
@@ -185,14 +226,22 @@ export default function EvidencePage({ bookmarks, onToggleBookmark }: EvidencePa
         filterStatus={filterStatus}
         filterRelevance={filterRelevance}
         sortOrder={sortOrder}
-        onSearchChange={setSearchTerm}
-        onFilterTypeChange={setFilterType}
-        onFilterPersonChange={setFilterPersonId}
-        onFilterLocationChange={setFilterLocationId}
-        onFilterStatusChange={setFilterStatus}
-        onFilterRelevanceChange={setFilterRelevance}
-        onSortChange={setSortOrder}
-        onClearFilters={handleClearFilters}
+        onSearchChange={(value) => dispatch({ type: "SET_FILTER", field: "searchTerm", value })}
+        onFilterTypeChange={(value) => dispatch({ type: "SET_FILTER", field: "filterType", value })}
+        onFilterPersonChange={(value) =>
+          dispatch({ type: "SET_FILTER", field: "filterPersonId", value })
+        }
+        onFilterLocationChange={(value) =>
+          dispatch({ type: "SET_FILTER", field: "filterLocationId", value })
+        }
+        onFilterStatusChange={(value) =>
+          dispatch({ type: "SET_FILTER", field: "filterStatus", value })
+        }
+        onFilterRelevanceChange={(value) =>
+          dispatch({ type: "SET_FILTER", field: "filterRelevance", value })
+        }
+        onSortChange={(sortOrder) => dispatch({ type: "SET_SORT", sortOrder })}
+        onClearFilters={() => dispatch({ type: "CLEAR_FILTERS" })}
       />
       <div className="evidence-grid">
         {visibleEvidence.length === 0 && <p>No evidence matches the current filters.</p>}

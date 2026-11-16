@@ -232,15 +232,42 @@ That's the "possibly hard-to-track" part, it depends entirely on whether somethi
 
 **Tasks**
 
-- [ ] Identify the Evidence Catalogue's combined filter state (search term, type, person, location, status, relevance, and sort order — 7+ related values that often change together or need to be reset together) as a single non-trivial state domain, and replace its `useState` calls with a single `useReducer`.
-- [ ] Implement at least 3 distinct action types (e.g. `SET_FILTER`, `SET_SORT`, `CLEAR_FILTERS`).
+- [x] Identify the Evidence Catalogue's combined filter state (search term, type, person, location, status, relevance, and sort order — 7+ related values that often change together or need to be reset together) as a single non-trivial state domain, and replace its `useState` calls with a single `useReducer`.
+
+  The 7 `useState` calls Demo 4 introduced (`searchTerm`, `filterType`, `filterPersonId`, `filterLocationId`, `filterStatus`, `filterRelevance`, `sortOrder`) are now one `useReducer(filtersReducer, INITIAL_FILTERS)` ([EvidencePage.tsx:113](js/react/evidence/EvidencePage.tsx)), with `EvidenceFiltersState`/`EvidenceFiltersAction` and `filtersReducer` defined above the component ([EvidencePage.tsx:65-103](js/react/evidence/EvidencePage.tsx)).
+
+- [x] Implement at least 3 distinct action types (e.g. `SET_FILTER`, `SET_SORT`, `CLEAR_FILTERS`).
+
+  Exactly those 3: `SET_FILTER` (one generic action for all 6 text fields, keyed by `field`), `SET_SORT`, and `CLEAR_FILTERS` ([EvidencePage.tsx:77-80](js/react/evidence/EvidencePage.tsx) for the action types, [EvidencePage.tsx:96-102](js/react/evidence/EvidencePage.tsx) for the reducer's cases).
 
 **Questions** (depend on the tasks above)
 
-- [ ] Why is this particular piece of state ("evidence filters") a better fit for `useReducer` than for a pile of individual `useState` calls? What specifically got easier once you switched?
-- [ ] Show your `CLEAR_FILTERS` action. How does a reducer make "reset several related values at once, consistently" easier to get right than resetting them individually?
-- [ ] Is `useReducer` fundamentally different from `useState`, or is `useState` essentially a
-special case of the same underlying idea? Justify your answer.
+- [x] Why is this particular piece of state ("evidence filters") a better fit for `useReducer` than for a pile of individual `useState` calls? What specifically got easier once you switched?
+
+  Because these 7 values aren't independent, theya are read together (every filter feeds the same `visibleEvidence` computation) and sometimes need to change together (`CLEAR_FILTERS` touches all 7 at once). 
+  
+  A reducer makes "what can happen to this state" an explicit, closed list of action types instead of 7 separately-callable setters; `handleClearFilters` as 7 individual `setX("")` calls (the Demo 4 version) is gone, replaced by one `dispatch({ type: "CLEAR_FILTERS" })`.
+
+- [x] Show your `CLEAR_FILTERS` action. How does a reducer make "reset several related values at once, consistently" easier to get right than resetting them individually?
+
+  ```ts
+  case "CLEAR_FILTERS":
+    return INITIAL_FILTERS;
+  ```
+
+  With 7 separate `useState`s, clearing meant calling 7 setters in a row by hand — add an 8th filter later and it's easy to forget to add its reset call too, silently leaving one field "stuck". With one object and one action, `CLEAR_FILTERS` just returns the one `INITIAL_FILTERS` constant; a new field added to 
+  `EvidenceFiltersState` is automatically covered because it's already part of that same object.
+
+
+- [x] Is `useReducer` fundamentally different from `useState`, or is `useState` essentially a special case of the same underlying idea? Justify your answer.
+
+  useReducer is a React hook, which is a  a built-in function, same category as useState, not an object you construct. It’s an alternative way to store state in a component.
+
+  Where useState gives you a value and a setter (const [count, setCount] = useState(0)), useReducer gives you a value and a dispatch function, plus you write a separate reducer function that decides how the value changes.
+
+  `useState` is the special case. Both store a value and trigger a re-render when it changes.
+  
+   `useReducer` just names the transitions (actions) instead of letting any caller set the next value directly. In fact React's own `useState` is implementable on top of `useReducer` with a trivial reducer that ignores the action type and returns whatever value was dispatched — `setCount(5)` is the same shape as `dispatch(5)` through `(state, action) => action`.
 
 ---
 
