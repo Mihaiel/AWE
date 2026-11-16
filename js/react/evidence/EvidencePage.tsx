@@ -12,12 +12,13 @@
 // mount. That's a deliberate, temporary duplication: the real single
 // source of truth should be one piece of state both pages read from,
 // that's exactly Demo 5's "lift state to the nearest common owner" job,
-// not this demo's. Search is wired (onChange) but not yet a controlled
-// input (no `value=` on the box below) - Demo 2's job to close that
-// loop; for now this only filters by title/summary/tag, mirroring the
-// vanilla search handler's own scope, not the other 5 filter selects
-// (those stay static until Demo 4 builds the real combined derived
-// list).
+// not this demo's.
+//
+// Demo 2: searchTerm is now a real controlled input, see
+// EvidenceFilterToolbar.tsx's own comment. Still only filters by
+// title/summary/tag, mirroring the vanilla search handler's own scope,
+// not the other 5 filter selects (those stay static until Demo 4
+// builds the real combined derived list).
 import { useEffect, useState } from "react";
 import type { Evidence, Person, Location } from "../../types.js";
 import { STORAGE_KEY_BOOKMARKS } from "../../storage.js";
@@ -106,6 +107,7 @@ export default function EvidencePage() {
     <div>
       <h2>Evidence Catalogue</h2>
       <EvidenceFilterToolbar
+        searchTerm={searchTerm}
         evidenceTypes={evidenceTypes}
         people={data.people}
         locations={data.locations}

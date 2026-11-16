@@ -5,16 +5,22 @@
 // once from real data instead of populateEvidenceDropdowns() rebuilding
 // <option> strings by hand every time the view loads.
 //
-// Only the search box is wired to a real handler this demo (onChange,
-// no `value` yet - that's Demo 2's job, making it a controlled input).
-// The other 5 selects + sort + "Clear filters" are deliberately static
-// for now: real options, no onChange, same "visually complete, not
+// Demo 1 wired the search box's onChange but left it uncontrolled (no
+// `value=`). Demo 2 closes that loop: `value={searchTerm}` now comes
+// from EvidencePage's own useState, so the box always shows exactly
+// what React thinks the search term is, not whatever the browser's own
+// uncontrolled DOM input happens to display. See EXERCISE_5.md Demo 2
+// for what breaks if the `onChange` below is removed but `value` stays.
+//
+// The other 5 selects + sort + "Clear filters" are deliberately still
+// static: real options, no onChange, same "visually complete, not
 // wired yet" allowance Exercise 4's Timeline toolbar used. Demo 4 wires
 // these into the actual filtered/sorted list; Demo 7 moves all of this
 // into one useReducer once there are 7+ related values to manage.
 import type { Person, Location } from "../../types.js";
 
 interface EvidenceFilterToolbarProps {
+  searchTerm: string;
   evidenceTypes: string[];
   people: Person[];
   locations: Location[];
@@ -22,6 +28,7 @@ interface EvidenceFilterToolbarProps {
 }
 
 export default function EvidenceFilterToolbar({
+  searchTerm,
   evidenceTypes,
   people,
   locations,
@@ -38,6 +45,7 @@ export default function EvidenceFilterToolbar({
           id="evidenceSearch"
           placeholder="Search evidence by title, summary, or tag…"
           autoComplete="off"
+          value={searchTerm}
           onChange={(event) => onSearchChange(event.target.value)}
         />
 

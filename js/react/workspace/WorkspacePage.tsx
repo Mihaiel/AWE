@@ -1,9 +1,9 @@
 // ---------------------------------------------------------------------
-// WORKSPACE PAGE - Exercise 5 Demo 1
+// WORKSPACE PAGE - Exercise 5 Demo 1, hypothesis form controlled in Demo 2
 // ---------------------------------------------------------------------
 // Static structure for all three pieces the vanilla workspace.ts built:
 // the bookmarked-evidence list, the notes list, and the hypothesis
-// form. None of this demo's 3 chosen event-handler migrations (bookmark
+// form. None of Demo 1's 3 chosen event-handler migrations (bookmark
 // click, search input, save-note click) live here, they're all on the
 // Evidence side - this page only needs to read the results of the
 // bookmark/note handlers that live in EvidencePage/EvidenceDetail, via
@@ -15,18 +15,54 @@
 // other way to know what's bookmarked. That's exactly the problem
 // Demo 5 ("lift state to the nearest common owner") exists to fix.
 //
-// The hypothesis form below is intentionally NOT wired to anything yet
-// - real options, real markup, zero state. Demo 2's own task list names
-// making this form fully controlled and wiring "Save hypothesis draft"
-// explicitly, so building that here would just be redoing Demo 2's job
-// early.
+// Demo 2: the hypothesis form is one `useState<HypothesisDraft>`, not
+// 6 separate useState calls. These 6 fields are never read, reset, or
+// saved independently, every one of them is only ever used as part of
+// "the current draft", read together by handleSaveDraft() and
+// persisted as a single JSON blob, exactly like the vanilla version's
+// own HypothesisDraft interface already modeled it. One state value
+// per true "thing being tracked" beats one state value per DOM field.
+// See EXERCISE_5.md Demo 2 for why this is the right call for this
+// particular form but not the only one (Demo 7 revisits this same
+// question for the evidence filters, a seven-field domain that - unlike
+// this one - does need individual field updates plus a few named bulk
+// operations, which is what makes it useReducer's job instead).
 import { useEffect, useState } from "react";
 import type { Evidence, Person } from "../../types.js";
-import { STORAGE_KEY_BOOKMARKS, STORAGE_KEY_NOTES } from "../../storage.js";
+import { STORAGE_KEY_BOOKMARKS, STORAGE_KEY_NOTES, STORAGE_KEY_HYPOTHESIS } from "../../storage.js";
 
 interface WorkspaceData {
   evidence: Evidence[];
   people: Person[];
+}
+
+interface HypothesisDraft {
+  suspectId: string;
+  nature: string;
+  evidenceIds: string[];
+  confidence: number;
+  explanation: string;
+  alternative: string;
+}
+
+const EMPTY_DRAFT: HypothesisDraft = {
+  suspectId: "",
+  nature: "",
+  evidenceIds: [],
+  confidence: 50,
+  explanation: "",
+  alternative: "",
+};
+
+function readHypothesisDraft(): HypothesisDraft {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_HYPOTHESIS);
+    if (!raw) return EMPTY_DRAFT;
+    const parsed = JSON.parse(raw) as Partial<HypothesisDraft>;
+    return { ...EMPTY_DRAFT, ...parsed };
+  } catch {
+    return EMPTY_DRAFT;
+  }
 }
 
 function readBookmarks(): string[] {
@@ -51,6 +87,8 @@ function readNotes(): Record<string, string> {
 
 export default function WorkspacePage() {
   const [data, setData] = useState<WorkspaceData | null>(null);
+  const [draft, setDraft] = useState<HypothesisDraft>(readHypothesisDraft);
+  const [showSaved, setShowSaved] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -88,6 +126,19 @@ export default function WorkspacePage() {
   const noteEntries = data.evidence
     .filter((ev) => notes[ev.id])
     .map((ev) => ({ evidenceId: ev.id, title: ev.title, text: notes[ev.id]! }));
+
+  function updateDraft<K extends keyof HypothesisDraft>(key: K, value: HypothesisDraft[K]) {
+    setDraft((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function handleSaveDraft() {
+    localStorage.setItem(
+      STORAGE_KEY_HYPOTHESIS,
+      JSON.stringify({ ...draft, savedAt: new Date().toISOString() }),
+    );
+    setShowSaved(true);
+    setTimeout(() => setShowSaved(false), 2000);
+  }
 
   return (
     <div>
@@ -134,7 +185,11 @@ export default function WorkspacePage() {
         <form id="hypothesisForm">
           <div className="form-row">
             <label htmlFor="hypSuspect">Suspected responsible person</label>
-            <select id="hypSuspect">
+            <select
+              id="hypSuspect"
+              value={draft.suspectId}
+              onChange={(event) => updateDraft("suspectId", event.target.value)}
+            >
               <option value="">Select a person&hellip;</option>
               {data.people.map((person) => (
                 <option key={person.id} value={person.id}>
@@ -146,7 +201,11 @@ export default function WorkspacePage() {
 
           <div className="form-row">
             <label htmlFor="hypNature">Accidental or deliberate incident</label>
-            <select id="hypNature">
+            <select
+              id="hypNature"
+              value={draft.nature}
+              onChange={(event) => updateDraft("nature", event.target.value)}
+            >
               <option value="">Select&hellip;</option>
               <option value="accidental">Accidental</option>
               <option value="deliberate">Deliberate</option>
@@ -156,7 +215,18 @@ export default function WorkspacePage() {
 
           <div className="form-row">
             <label htmlFor="hypEvidence">Selected supporting evidence</label>
-            <select id="hypEvidence" multiple size={6}>
+            <select
+              id="hypEvidence"
+              multiple
+              size={6}
+              value={draft.evidenceIds}
+              onChange={(event) =>
+                updateDraft(
+                  "evidenceIds",
+                  Array.from(event.target.selectedOptions, (option) => option.value),
+                )
+              }
+            >
               {data.evidence.map((ev) => (
                 <option key={ev.id} value={ev.id}>
                   {ev.id} - {ev.title}
@@ -167,13 +237,26 @@ export default function WorkspacePage() {
 
           <div className="form-row">
             <label htmlFor="hypConfidence">Confidence (0&ndash;100)</label>
-            <input type="range" id="hypConfidence" min={0} max={100} defaultValue={50} />
-            <output id="hypConfidenceValue">50</output>
+            <input
+              type="range"
+              id="hypConfidence"
+              min={0}
+              max={100}
+              value={draft.confidence}
+              onChange={(event) => updateDraft("confidence", Number(event.target.value))}
+            />
+            <output id="hypConfidenceValue">{draft.confidence}</output>
           </div>
 
           <div className="form-row">
             <label htmlFor="hypExplanation">Written explanation</label>
-            <textarea id="hypExplanation" rows={4} placeholder="Explain your reasoning…" />
+            <textarea
+              id="hypExplanation"
+              rows={4}
+              placeholder="Explain your reasoning…"
+              value={draft.explanation}
+              onChange={(event) => updateDraft("explanation", event.target.value)}
+            />
           </div>
 
           <div className="form-row">
@@ -182,14 +265,16 @@ export default function WorkspacePage() {
               id="hypAlternative"
               rows={3}
               placeholder="What else could explain the evidence?"
+              value={draft.alternative}
+              onChange={(event) => updateDraft("alternative", event.target.value)}
             />
           </div>
 
           <div className="form-actions">
-            <button type="button" className="btn btn-primary">
+            <button type="button" className="btn btn-primary" onClick={handleSaveDraft}>
               Save hypothesis draft
             </button>
-            <span className="saved-msg hidden">Saved</span>
+            {showSaved && <span className="saved-msg">Saved</span>}
           </div>
         </form>
       </div>

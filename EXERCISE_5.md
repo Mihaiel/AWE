@@ -80,16 +80,34 @@ React never does that becauase [EvidenceCard.tsx](js/react/evidence/EvidenceCard
 
 **Tasks**
 
-- [ ] Make the Evidence search box a controlled input (`value` + `onChange` backed by `useState`).
-- [ ] Make the entire hypothesis form (suspect select, nature select, evidence multi-select,
+- [x] Make the Evidence search box a controlled input (`value` + `onChange` backed by `useState`).
+
+      [EvidenceFilterToolbar.tsx](js/react/evidence/EvidenceFilterToolbar.tsx) search `<input>` now has `value={searchTerm}` alongside the `onChange` Demo 1 already wired, `searchTerm` is [EvidencePage.tsx](js/react/evidence/EvidencePage.tsx)'s own `useState`, passed down as a prop.
+
+- [x] Make the entire hypothesis form (suspect select, nature select, evidence multi-select,
 confidence range, explanation and alternative textareas) fully controlled.
-- [ ] Wire the "Save hypothesis draft" action to read from your controlled state and persist it (still to `localStorage` for now).
+
+[WorkspacePage.tsx](js/react/workspace/WorkspacePage.tsx): one `useState<HypothesisDraft>` holds all 6 fields, every field now has both `value`/`onChange`, including the multi-select (`value={draft.evidenceIds}`, an array) and the range (`value={draft.confidence}`, with the `<output>` now reading `{draft.confidence}` instead of a hardcoded "50").
+
+- [x] Wire the "Save hypothesis draft" action to read from your controlled state and persist it (still to `localStorage` for now).
+
+      `handleSaveDraft()` in [WorkspacePage.tsx](js/react/workspace/WorkspacePage.tsx) writes `draft` straight to `localStorage` (`STORAGE_KEY_HYPOTHESIS`) and shows a "Saved" message for 2 seconds via a `showSaved` state flag, replacing the vanilla version's `classList.add/remove("hidden")` with plain conditional rendering. Verified live: filled every field, saved, reloaded the page, every field came back exactly as entered (confirmed via `localStorage.getItem("remotion_hypothesis")`).
 
 **Questions** (depend on the tasks above)
 
-- [ ] What makes an input "controlled" versus "uncontrolled" in React? Show what happens if you try to type in one of your controlled inputs without wiring its `onChange` and explain, in terms of React's render cycle, *why* that happens.
-- [ ] The hypothesis form has several different input types (select, multi-select, range, textarea). Did you use one `useState` per field, or a single object? Justify your choice — and note this question again once you get to Demo 7 (`useReducer`), which asks you to reconsider it for a different form.
+- [x] What makes an input "controlled" versus "uncontrolled" in React? Show what happens if you try to type in one of your controlled inputs without wiring its `onChange` and explain, in terms of React's render cycle, *why* that happens.
 
+      Controlled means the input's displayed value comes from React state (`value={...}`), the DOM element is never the source of truth, just a reflection of it. Uncontrolled means the DOM manages its own value, React just reads it when it needs to (or not at all).
+
+      Tested live: temporarily commented out the search box's `onChange` while keeping `value={searchTerm}`. Typing into it did nothing, the field stayed frozen on whatever `searchTerm` already was, and React logged `"You provided a value prop to a form field without an onChange handler. This will render a read-only field..."` in the console. Why: every keystroke still fires a native DOM input event, but nothing calls `setSearchTerm`, so React re-renders with the exact same `searchTerm` it already had and writes that same `value` straight back onto the input, overwriting whatever the browser briefly displayed. Reverted immediately after confirming it.
+
+- [x] The hypothesis form has several different input types (select, multi-select, range, textarea). Did you use one `useState` per field, or a single object? Justify your choice — and note this question again once you get to Demo 7 (`useReducer`), which asks you to reconsider it for a different form.
+
+    I used on object here, with 6 different properties. I could have split it into different separate values wich useState but having this one object seemed the perfect fit.
+    (Workspace View)
+    Inside /workspace/WorkspacePage.tsx is the code.
+    
+      One object, `useState<HypothesisDraft>`. All 6 fields are only ever read, reset, or saved together as one "draft", never independently, and the vanilla version already modeled them as one `HypothesisDraft` interface written out as a single JSON blob. A `useState` per field would've meant 6 separate values that still only ever get used as a group, more hooks for no real benefit.
 ---
 
 ## Demo 3 — Immutable updates
