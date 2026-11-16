@@ -6,13 +6,10 @@
 // EXERCISE_3.md's first question for why this is fine per-view and
 // what should replace it once a shared data layer exists).
 //
-// Bookmarks live as this component's own useState for now, persisted to
-// localStorage (same STORAGE_KEY_BOOKMARKS key the vanilla app used) so
-// WorkspacePage can read the current set independently on its own
-// mount. That's a deliberate, temporary duplication: the real single
-// source of truth should be one piece of state both pages read from,
-// that's exactly Demo 5's "lift state to the nearest common owner" job,
-// not this demo's.
+// Demo 5: bookmarks and the toggle handler no longer live here - they
+// moved up to App.tsx, the lowest common ancestor of this page,
+// DashboardPage, and WorkspacePage, and arrive as props instead. See
+// App.tsx's own comment and EXERCISE_5.md Demo 5.
 //
 // Demo 2: searchTerm is now a real controlled input, see
 // EvidenceFilterToolbar.tsx's own comment. Still only filters by
@@ -20,12 +17,10 @@
 // not the other 5 filter selects (those stay static until Demo 4
 // builds the real combined derived list).
 //
-// Demo 3: handleToggleBookmark below always produces a brand new array
-// (via .filter()/spread), never mutates `bookmarks` in place. See the
-// commented-out handleToggleBookmarkBuggy right after it for the
-// "first instinct" version this deliberately isn't, kept in the repo
-// to swap in live rather than deleted, same convention as Exercise 4
-// Demo 4's KeyDemoThrowaway.
+// Demo 3: handleToggleBookmark (now in App.tsx) always produces a
+// brand new array (via .filter()/spread), never mutates `bookmarks` in
+// place - see App.tsx for that handler and its commented-out buggy
+// counterpart.
 //
 // Demo 4: the 5 remaining filter selects + sort, left
 // static since Demo 1, are now wired. Each one is its own useState -
@@ -38,7 +33,6 @@
 // `filteredEvidence` state here - see EXERCISE_5.md Demo 4.
 import { useEffect, useState } from "react";
 import type { Evidence, Person, Location } from "../../types.js";
-import { STORAGE_KEY_BOOKMARKS } from "../../storage.js";
 import { evidenceMentionsPerson } from "../../utils.js";
 import EvidenceFilterToolbar from "./EvidenceFilterToolbar.js";
 import EvidenceCard from "./EvidenceCard.js";
@@ -50,23 +44,13 @@ interface EvidenceCatalogueData {
   locations: Location[];
 }
 
-function readBookmarks(): string[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY_BOOKMARKS);
-    const parsed: unknown = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? (parsed as string[]) : [];
-  } catch {
-    return [];
-  }
+interface EvidencePageProps {
+  bookmarks: string[];
+  onToggleBookmark: (evidenceId: string) => void;
 }
 
-function writeBookmarks(bookmarks: string[]): void {
-  localStorage.setItem(STORAGE_KEY_BOOKMARKS, JSON.stringify(bookmarks));
-}
-
-export default function EvidencePage() {
+export default function EvidencePage({ bookmarks, onToggleBookmark }: EvidencePageProps) {
   const [data, setData] = useState<EvidenceCatalogueData | null>(null);
-  const [bookmarks, setBookmarks] = useState<string[]>(readBookmarks);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("");
   const [filterPersonId, setFilterPersonId] = useState("");
@@ -152,36 +136,6 @@ export default function EvidencePage() {
     setSortOrder("date-desc");
   }
 
-  function handleToggleBookmark(evidenceId: string) {
-    const next = bookmarks.includes(evidenceId)
-      ? bookmarks.filter((id) => id !== evidenceId)
-      : [...bookmarks, evidenceId];
-    setBookmarks(next);
-    writeBookmarks(next);
-  }
-
-  // ---------------------------------------------------------------------
-  // Exercise 5, Demo 3 live demo (uncomment this function, then swap the
-  // `onToggleBookmark={handleToggleBookmark}` prop below to
-  // `onToggleBookmark={handleToggleBookmarkBuggy}` to show it in class):
-  // click a star and nothing happens, not even a second later, because
-  // .push()/.splice() mutate `bookmarks` in place and setBookmarks is
-  // then called with that EXACT SAME array reference. React's setState
-  // bails out via Object.is(prevState, nextState) and skips the
-  // re-render entirely when they're reference-equal, so the star never
-  // flips, the data did change in memory (log `bookmarks` in the
-  // console right after clicking - it's correct!), React just never
-  // found out. Swap back to handleToggleBookmark afterward.
-  // function handleToggleBookmarkBuggy(evidenceId: string) {
-  //   if (bookmarks.includes(evidenceId)) {
-  //     bookmarks.splice(bookmarks.indexOf(evidenceId), 1);
-  //   } else {
-  //     bookmarks.push(evidenceId);
-  //   }
-  //   setBookmarks(bookmarks);
-  //   writeBookmarks(bookmarks);
-  // }
-
   const selectedEvidence = data.evidence.find((ev) => ev.id === selectedEvidenceId) ?? null;
 
   return (
@@ -214,7 +168,7 @@ export default function EvidencePage() {
             key={ev.id}
             evidence={ev}
             isBookmarked={bookmarks.includes(ev.id)}
-            onToggleBookmark={handleToggleBookmark}
+            onToggleBookmark={onToggleBookmark}
             onOpen={setSelectedEvidenceId}
           />
         ))}

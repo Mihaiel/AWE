@@ -9,11 +9,10 @@
 // bookmark/note handlers that live in EvidencePage/EvidenceDetail, via
 // the same localStorage keys.
 //
-// Reading bookmarks straight from localStorage here (not from
-// EvidencePage's own useState) is a deliberate, temporary duplication:
-// there's no common owner for bookmark state yet, so this page has no
-// other way to know what's bookmarked. That's exactly the problem
-// Demo 5 ("lift state to the nearest common owner") exists to fix.
+// Demo 5: bookmarks arrive as a prop from App.tsx now, the common
+// ancestor this page shares with EvidencePage and DashboardPage,
+// instead of this page reading localStorage independently on its own
+// mount. See App.tsx's own comment and EXERCISE_5.md Demo 5.
 //
 // Demo 2: the hypothesis form is one `useState<HypothesisDraft>`, not
 // 6 separate useState calls. These 6 fields are never read, reset, or
@@ -29,7 +28,7 @@
 // operations, which is what makes it useReducer's job instead).
 import { useEffect, useState } from "react";
 import type { Evidence, Person } from "../../types.js";
-import { STORAGE_KEY_BOOKMARKS, STORAGE_KEY_NOTES, STORAGE_KEY_HYPOTHESIS } from "../../storage.js";
+import { STORAGE_KEY_NOTES, STORAGE_KEY_HYPOTHESIS } from "../../storage.js";
 
 interface WorkspaceData {
   evidence: Evidence[];
@@ -65,16 +64,6 @@ function readHypothesisDraft(): HypothesisDraft {
   }
 }
 
-function readBookmarks(): string[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY_BOOKMARKS);
-    const parsed: unknown = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? (parsed as string[]) : [];
-  } catch {
-    return [];
-  }
-}
-
 function readNotes(): Record<string, string> {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_NOTES);
@@ -85,7 +74,11 @@ function readNotes(): Record<string, string> {
   }
 }
 
-export default function WorkspacePage() {
+interface WorkspacePageProps {
+  bookmarks: string[];
+}
+
+export default function WorkspacePage({ bookmarks }: WorkspacePageProps) {
   const [data, setData] = useState<WorkspaceData | null>(null);
   const [draft, setDraft] = useState<HypothesisDraft>(readHypothesisDraft);
   const [showSaved, setShowSaved] = useState(false);
@@ -116,7 +109,6 @@ export default function WorkspacePage() {
     return <p>Loading case file&hellip;</p>;
   }
 
-  const bookmarks = readBookmarks();
   const bookmarkedEvidence = data.evidence.filter((ev) => bookmarks.includes(ev.id));
 
   const notes = readNotes();

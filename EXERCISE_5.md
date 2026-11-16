@@ -174,14 +174,29 @@ That's the "possibly hard-to-track" part, it depends entirely on whether somethi
 
 **Tasks**
 
-- [ ] Identify the lowest common ancestor component of everywhere bookmark state needs to be read or changed (at minimum: an Evidence card's bookmark button, the Dashboard's bookmark count, and the Workspace's bookmarked-items list), and move the actual `useState` for bookmarks up to live there.
-- [ ] Confirm that toggling a bookmark from the Evidence view is immediately reflected on the
-Dashboard the next time it's rendered.
+- [x] Identify the lowest common ancestor component of everywhere bookmark state needs to be read or changed (at minimum: an Evidence card's bookmark button, the Dashboard's bookmark count, and the Workspace's bookmarked-items list), and move the actual `useState` for bookmarks up to live there.
+
+    I moved the bookmarks state (the useState<string[]> array) and the handleToggleBookmark function into App.tsx.
+
+  `App` ([js/react/App.tsx](js/react/App.tsx)) is the lowest common ancestor — `DashboardPage`, `EvidencePage`, and `WorkspacePage` are siblings under its `<Routes>`, each mounted only while its own route matches. The `useState<string[]>(readBookmarks)` and `handleToggleBookmark` moved there (App.tsx:36-72), and are passed down as `bookmarks`/`onToggleBookmark` props to the 3 routes that need them (App.tsx:103-116).
+
+- [x] Confirm that toggling a bookmark from the Evidence view is immediately reflected on the Dashboard the next time it's rendered.
+  
+    Verified live: bookmarked an evidence, switched to Dashboard (no reload, just a route change) — "Bookmarked" read 1 immediately. Switched to Workspace — the same item appeared in "Bookmarked Evidence" immediately too.
 
 **Questions** (depend on the tasks above)
 
-- [ ] What does "lifting state up" actually mean, mechanically? Walk through where the bookmark state lived before you lifted it, and where it lives now.
-- [ ] What would go wrong (be specific) if you had instead kept a separate `useState` for bookmarks inside each of the Dashboard, Evidence, and Workspace components?
+- [x] What does "lifting state up" actually mean, mechanically? Walk through where the bookmark state lived before you lifted it, and where it lives now.
+
+  Mechanically: delete the `useState` from the child, add it to a shared ancestor instead, and pass the value (and a setter/callback for changing it) down as props. Before: `EvidencePage` owned `useState<string[]>`, while `DashboardPage`/`WorkspacePage` each independently called their own `localStorage.getItem` in their render body — three separate reads of one key, no shared value in memory. 
+  
+  Now: only `App` calls `useState`/`readBookmarks` ([App.tsx:36](js/react/App.tsx)), and the other three components receive `bookmarks` (and `EvidencePage` also `onToggleBookmark`) purely as props.
+
+- [x] What would go wrong (be specific) if you had instead kept a separate `useState` for bookmarks inside each of the Dashboard, Evidence, and Workspace components?
+
+  Each component's `useState` would only read `localStorage` once, on its own mount (lazy initializer), and never again. 
+  
+  Bookmarking something on Evidence would update Evidence's own copy and `localStorage`, but Dashboard's/Workspace's already-mounted copies wouldn't know anything changed — they'd keep showing whatever count/list they loaded when they first mounted.
 
 ---
 
