@@ -345,12 +345,28 @@ That's the "possibly hard-to-track" part, it depends entirely on whether somethi
 
 **Tasks**
 
-- [ ] Do a final sweep of the Evidence Catalogue and Workspace views (and re-check Dashboard/People & Locations/Timeline from Exercises 3–4) for any remaining direct DOM manipulation, e.g. `document.querySelector`, manual `classList` changes, `innerHTML`, anything not going through React's render, and remove it.
-- [ ] Confirm the whole app (all 5 views) now runs entirely on React state and props, with zero manual DOM manipulation anywhere.
+- [x] Do a final sweep of the Evidence Catalogue and Workspace views (and re-check Dashboard/People & Locations/Timeline from Exercises 3–4) for any remaining direct DOM manipulation, e.g. `document.querySelector`, manual `classList` changes, `innerHTML`, anything not going through React's render, and remove it.
+
+  As instructed by my outstanding and beautiful agent, I ran `grep -rn "document\.\|innerHTML\|classList\|getElementById\|querySelector\|createElement\|appendChild\|removeChild\|insertAdjacentHTML\|outerHTML\|setAttribute\|removeAttribute\|dangerouslySetInnerHTML" js/react/` across all 26 files. Only real hit: `js/react/main.tsx`'s `document.getElementById("react-root")`, the one unavoidable DOM lookup every React app needs to mount itself — not "manipulation," there's nothing to render into otherwise. Every other hit was a comment referencing the old vanilla pattern it replaced (e.g. [EvidenceDetail.tsx:16-21](js/react/evidence/EvidenceDetail.tsx), [NavBar.tsx:4-11](js/react/shell/NavBar.tsx)), not live code. Nothing left to remove.
+
+- [x] Confirm the whole app (all 5 views) now runs entirely on React state and props, with zero manual DOM manipulation anywhere.
+
+  Confirmed by the grep sweep above plus a live click-through of all 5 routes (`/`, `/evidence`, `/team`, `/timeline`, `/workspace`) — each rendered correctly with zero new console errors.
 
 **Questions** (depend on the tasks above)
 
-- [ ] Show one state-management decision you made somewhere in this exercise (state ownership, `useState` vs. `useReducer`, prop drilling vs. Context, or something else) that you're not 100% sure was the right call. Explain the trade-off honestly, both directions.
-- [ ] Across Exercises 3–5, name one bug category from the *original* vanilla app (Exercise 1's defect list) that is now, by construction, no longer possible in your React version — not just fixed, but structurally prevented. Explain why the React architecture rules it out.
+- [x] Show one state-management decision you made somewhere in this exercise (state ownership, `useState` vs. `useReducer`, prop drilling vs. Context, or something else) that you're not 100% sure was the right call. Explain the trade-off honestly, both directions.
+
+  Demo 7's `useReducer` for the Evidence filters. It names every possible transition in one place (`SET_FILTER`/`SET_SORT`/`CLEAR_FILTERS`), which reads well and matches "several related values with a named bulk operation." Against: `CLEAR_FILTERS` returning `INITIAL_FILTERS` is something a single `useState<EvidenceFiltersState>` object could do exactly as simply, with `setFilters(INITIAL_FILTERS)` — no action types needed, and `setFilters((prev) => ({ ...prev, [field]: value }))` covers every other case just as well. 
+  
+  The reducer's actual benefit here is organizational (one switch statement names every legal transition) rather than something a plain object `useState` structurally couldn't do.
+
+- [x] Across Exercises 3–5, name one bug category from the *original* vanilla app (Exercise 1's defect list) that is now, by construction, no longer possible in your React version — not just fixed, but structurally prevented. Explain why the React architecture rules it out.
+
+  Exercise 1 Demo 5/8's "Bug D": `setupEventListeners()` looped with `var i`, registering one closure per nav button that read the shared `navButtons[i]` only when actually clicked, by which point the loop had already finished and `i` equaled `navButtons.length` — every click threw `Cannot read properties of undefined (reading 'getAttribute')`. 
+  
+  The fix there was `var` → `let`, giving each iteration its own binding. In `NavBar.tsx` ([NavBar.tsx:31-39](js/react/shell/NavBar.tsx)), there's no loop with a shared counter at all: `VIEWS.map((view) => <NavLink ...>)` calls its callback once per array element, and each call gets its own fresh `view` parameter, bound at that call, for the lifetime of that one closure. 
+  
+  There's no shared mutable variable for any closure to read *later* and find already advanced past the end — the entire bug class (a closure capturing a loop variable that keeps changing after the closure is created) has no mechanism to exist in `.map()`'s per-element call model, not just no occurrence of it this time.
 
 ---
