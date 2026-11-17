@@ -139,16 +139,39 @@ These checkboxes are for self-checking. Don't forget to do the actual checking o
 
 **Tasks**
 
-- [ ] Set up a minimal Node.js server (Express or equivalent) with one GET endpoint per data
-resource (case, evidence, people, locations, timeline), each returning the same shape of data
-as the corresponding `data/*.json` file does today.
-- [ ] Add a way to deliberately simulate real-world conditions for testing later demos: an artificial delay (configurable, e.g. via a query param or env var) on at least one endpoint, and a way to make one endpoint return an error response (e.g. a 500) on demand.
-- [ ] Confirm the server runs locally alongside `vite dev` and is documented (a README section is enough) as dev-only (not part of the Exercise 2 deploy pipeline).
+- [x] Set up a minimal Node.js server (Express or equivalent) with one GET endpoint per data resource (case, evidence, people, locations, timeline), each returning the same shape of data as the corresponding `data/*.json` file does today.
+
+    Installed through npm and 
+
+  [server/index.js](server/index.js), one `GET` endpoint per resource ([server/index.js:81-85](server/index.js)), each reading straight from the exact same file under `public/data/` the static frontend already uses and sending it back byte-for-byte via `res.type("application/json").send(raw)` — no re-parse/re-serialize step that could drift the shape. Verified: `diff`'d all 5 endpoints' responses against their `public/data/*.json` files directly — identical.
+
+- [x] Add a way to deliberately simulate real-world conditions for testing later demos: an artificial delay (configurable, e.g. via a query param or env var) on at least one endpoint, and a way to make one endpoint return an error response (e.g. a 500) on demand.
+
+  Both apply to *every* endpoint, via query params ([server/index.js:50-59](server/index.js)): `?delay=<ms>` and `?error=1`/`?error=true`. Verified live: `?delay=1500` on `/api/case` took 1.515s measured end to end; `?error=1` on `/api/evidence` returned a `500` with a JSON error body; a plain request with neither param was unaffected (fast, `200`).
+
+- [x] Confirm the server runs locally alongside `vite dev` and is documented (a README section is enough) as dev-only (not part of the Exercise 2 deploy pipeline).
+
+  New "Dev-only backend" section in [README.md](README.md). Verified live: ran `npm run dev` and `npm run server` at the same time (ports 5173 and 3001, no conflict), confirmed `npm run build`'s output in `dist/` contains nothing server-related (`find dist -iname "*server*"` returns empty) — `vite.config.js`'s `build.rollupOptions` never references `server/`, so it's structurally impossible for this code to end up in what Exercise 2's GitHub Pages workflow deploys.
 
 **Questions** (depend on the tasks above)
 
-- [ ] Why does this exercise ask for artificial delay/error controls on the backend, instead of just pointing the frontend at the static JSON files directly (as it already could)? What could you *not* teach convincingly without them?
-- [ ] What is CORS, and did you have to deal with it running your frontend (from Vite's dev server) against this separate backend server? If yes, what did you configure and why? If no, why not?
+- [x] Why does this exercise ask for artificial delay/error controls on the backend, instead of just pointing the frontend at the static JSON files directly (as it already could)? What could you *not* teach convincingly without them?
+
+  A static file fetch is either instant or a 404 so there's no way to make it take 2 seconds, or fail with a 500 and then succeed on retry, on demand, repeatably, live in front of a class. 
+  
+  Loading states at Demo 6 and request races at Demo 7, and realistic error handling all need a server that can be *told* to be slow or broken right now, for this one request, without editing any files or restarting anything, that's what `?delay=`/`?error=` does for uss.
+
+- [x] What is CORS, and did you have to deal with it running your frontend (from Vite's dev server) against this separate backend server? If yes, what did you configure and why? If no, why not?
+
+  CORS (Cross-Origin Resource Sharing) is the browser's own policy of blocking a page's JavaScript from reading a response from a different origin (scheme+host+port) unless that response explicitly says, via an `Access-Control-Allow-Origin` header, that it's allowed. `localhost:5173` (Vite) and `localhost:3001` (this backend) differ only by port, but that's still a different origin by the browser's definition.
+  
+  Yes, had to deal with it. Verified both ways: 
+  
+  temporarily commented out `app.use(cors())` ([server/index.js:42](server/index.js)), and a `fetch()` from the running React app (at `localhost:5173`) 
+
+  to `localhost:3001/api/case` failed with `TypeError: Failed to fetch`, 
+  
+  with the browser console logging `Access to fetch at 'http://localhost:3001/api/case' from origin 'http://localhost:5173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource` — even though `curl` to the same URL worked fine the whole time, proving the backend itself was never broken, only the browser's enforcement of it. Restored `cors()`, same fetch succeeded immediately.
 
 ---
 

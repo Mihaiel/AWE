@@ -35,6 +35,59 @@ npx serve .
 
 Then open `http://localhost:8080` (or whatever port your server prints) in your browser.
 
+### React version (Vite)
+
+The React rewrite (`react.html`) is built with Vite. From the project root:
+
+```bash
+npm install
+npm run dev
+```
+
+Then open the printed `localhost` URL with `/AWE/react.html` appended, e.g.
+`http://localhost:5173/AWE/react.html`.
+
+## Dev-only backend (Exercise 6)
+
+Starting with Exercise 6, the React views can read the case data from a small local Node/Express
+server instead of the static `data/*.json` files, specifically to make loading states, errors, and
+request races possible to demonstrate (a static file is either instant or a 404 — never slow,
+never intermittently failing).
+
+**This backend is dev-only.** It is never built, bundled, or deployed — it is not part of the
+Exercise 2 GitHub Pages workflow, which only ever builds and deploys the static frontend
+(`dist/`). Running it locally has no effect on what gets deployed.
+
+Run it alongside `npm run dev`, in a second terminal:
+
+```bash
+npm run server
+```
+
+This starts an Express server at `http://localhost:3001` with one read-only `GET` endpoint per
+data resource, each returning the exact same JSON the corresponding `public/data/*.json` file
+already does:
+
+- `GET /api/case`
+- `GET /api/evidence`
+- `GET /api/people`
+- `GET /api/locations`
+- `GET /api/timeline`
+
+There are no write endpoints and nothing is persisted server-side — bookmarks, notes, and the
+hypothesis draft all continue to live in the browser's `localStorage`, exactly as before.
+
+Two query parameters, supported on every endpoint above, exist purely to simulate real-world
+network conditions for testing later demos (loading states, errors, request cancellation):
+
+- `?delay=<ms>` — waits the given number of milliseconds before responding. For example,
+  `http://localhost:3001/api/evidence?delay=3000` takes about 3 seconds to respond.
+- `?error=1` (or `?error=true`) — responds with a `500` and a JSON error body instead of the real
+  data, on demand. For example, `http://localhost:3001/api/evidence?error=1`.
+
+Both default to off; a plain request (no query params) behaves like a normal, fast, successful
+fetch.
+
 ## Features
 
 - **Dashboard** — case summary and key statistics calculated from the loaded case data.
