@@ -57,14 +57,21 @@ function wantsSimulatedError(req) {
 }
 
 async function sendJsonFile(req, res, filename) {
-  if (wantsSimulatedError(req)) {
-    res.status(500).json({ error: `Simulated failure loading ${filename}` });
-    return;
-  }
-
+  // Exercise 6, Demo 7: delay used to be checked after the error
+  // check, so `?delay=3000&error=1` returned instantly instead of
+  // waiting - found live while trying to construct a request race
+  // that needed a request to be both slow AND ultimately fail.
+  // Confirmed via `curl -s -o /dev/null -w ... ?delay=3000&error=1`
+  // before this fix: 0.023s total, not ~3s. Delay now always applies
+  // first, regardless of whether an error is also requested.
   const delayMs = delayMsFromQuery(req);
   if (delayMs > 0) {
     await new Promise((resolve) => setTimeout(resolve, delayMs));
+  }
+
+  if (wantsSimulatedError(req)) {
+    res.status(500).json({ error: `Simulated failure loading ${filename}` });
+    return;
   }
 
   try {

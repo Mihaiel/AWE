@@ -35,7 +35,24 @@
 // See EXERCISE_6.md Demo 6 for how each was verified live (the error
 // path via the backend's own ?error=1, the empty path by temporarily
 // replacing public/data/timeline.json with [] and restoring it after).
-import { useEffect, useState } from "react";
+//
+// Exercise 6, Demo 7: added a "Refresh" button, a real, modest feature
+// (re-sync with the backend without reloading the whole page) that
+// also happens to be exactly what's needed to construct a request
+// race on demand: click it, then click it again before the first
+// response arrives, and - without a guard - whichever response
+// happens to arrive LAST wins, not whichever request was started
+// LAST. `load()` now takes an AbortController signal and aborts the
+// *previous* in-flight request (`abortRef.current?.abort()`) before
+// starting a new one, so a stale response can never land after a
+// newer one already has; `AbortError` from that is caught and
+// swallowed, not shown as a real error. This is a second, distinct
+// abort call-site from the mount effect's own cleanup below, which
+// aborts whatever's in flight if the component unmounts entirely -
+// different trigger (a user click vs. navigating away), same
+// mechanism. See EXERCISE_6.md Demo 7 for how the race was reproduced
+// live before this guard existed, and confirmed gone after.
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import type { TimelineEvent } from "../../types.js";
 import TimelineEventItem from "./TimelineEventItem.js";
@@ -46,35 +63,51 @@ export default function TimelinePage() {
   const [error, setError] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
   const personFilter = searchParams.get("person");
+  const abortRef = useRef<AbortController | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
+  const load = useCallback(async () => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
 
-    async function load() {
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/timeline`);
-        if (!res.ok) {
-          throw new Error(`Server responded with ${res.status}`);
-        }
-        const json: unknown = await res.json();
-        if (!cancelled) {
-          setEvents(json as TimelineEvent[]);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Unknown error");
-        }
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/timeline`, { signal: controller.signal });
+      if (!res.ok) {
+        throw new Error(`Server responded with ${res.status}`);
       }
+      const json: unknown = await res.json();
+      setEvents(json as TimelineEvent[]);
+      setError(null);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        // Superseded by a newer load() call - not a real failure,
+        // nothing to show for this one.
+        return;
+      }
+      setError(err instanceof Error ? err.message : "Unknown error");
     }
-
-    load();
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
+  useEffect(() => {
+    load();
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, [load]);
+
+  const refreshButton = (
+    <button type="button" className="btn btn-secondary btn-small" onClick={() => load()}>
+      Refresh
+    </button>
+  );
+
   if (error) {
-    return <p className="warning-banner">Could not load the timeline: {error}</p>;
+    return (
+      <div>
+        <p className="warning-banner">Could not load the timeline: {error}</p>
+        {refreshButton}
+      </div>
+    );
   }
 
   if (!events) {
@@ -82,7 +115,12 @@ export default function TimelinePage() {
   }
 
   if (events.length === 0) {
-    return <p className="hint-text">No timeline events have been recorded for this case yet.</p>;
+    return (
+      <div>
+        <p className="hint-text">No timeline events have been recorded for this case yet.</p>
+        {refreshButton}
+      </div>
+    );
   }
 
   const visibleEvents = personFilter
@@ -91,6 +129,7 @@ export default function TimelinePage() {
 
   return (
     <div>
+      {refreshButton}
       {personFilter && (
         <p>
           Filtered to events involving <strong>{personFilter}</strong>.{" "}

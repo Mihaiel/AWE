@@ -243,15 +243,33 @@ The component doesn't HAVE this new state yet (no error tracking at all), which 
 
 **Tasks**
 
-- [ ] Using your backend's artificial-delay control, construct a request race: trigger a request, then trigger another one (for the same data) before the first resolves, and observe
-what happens if you do nothing special about it. Does the UI ever show a result from the
-*older* request after a newer one already resolved?
-- [ ] Fix it using `AbortController` (or a request-id/"ignore stale response" guard, your choice), so the UI can never show a stale result.
+- [x] Using your backend's artificial-delay control, construct a request race: trigger a request, then trigger another one (for the same data) before the first resolves, and observe what happens if you do nothing special about it. Does the UI ever show a result from the *older* request after a newer one already resolved?
+
+  Added a real "Refresh" button to `TimelinePage.tsx` ([TimelinePage.tsx:103-107](js/react/timeline/TimelinePage.tsx)) — a genuine, modest feature (re-sync with the backend without reloading the page) that also happens to be exactly what's needed to trigger the same fetch twice in quick succession. 
+  
+  Constructed the race by temporarily firing two clicks back to back: one hitting `?delay=3000&error=1` (an older, slow, ultimately-failing request) immediately followed by a normal, fast click. **Yes** — without a guard, the UI briefly showed the correct 15 events (the fast response), then ~3 seconds later flipped to an error banner, the *older* request's stale failure overwriting the already-correct, newer result.
+
+  (While constructing this, found and fixed a real bug in `server/index.js`: `?delay=3000&error=1` was returning instantly instead of waiting, because the error check ran *before* the delay check — confirmed via `curl` timing, `0.023s` instead of `~3s`. Fixed by checking delay first, always.)
+
+- [x] Fix it using `AbortController` (or a request-id/"ignore stale response" guard, your choice), so the UI can never show a stale result.
+
+  `load()` now creates a fresh `AbortController` on every call and aborts whatever the *previous* call started first ([TimelinePage.tsx:68-71](js/react/timeline/TimelinePage.tsx)), passing its `signal` into `fetch()`. The resulting `AbortError` is caught and swallowed, not shown as a real error ([TimelinePage.tsx:85-90](js/react/timeline/TimelinePage.tsx)).
 
 **Questions** (depend on the tasks above)
 
-- [ ] Reproduce the race live (with artificial delay dialed up) before your fix, then show the fix preventing it. What exact sequence of events causes the stale result to win without the fix?
-- [ ] `AbortController` cancels the *request*. Does the effect's cleanup function run separately, or is aborting the fetch itself what you're doing inside the cleanup? Explain how the two connect in your implementation.
+- [x] Reproduce the race live (with artificial delay dialed up) before your fix, then show the fix preventing it. What exact sequence of events causes the stale result to win without the fix?
+
+  Reproduced with console logging temporarily added to trace it precisely. Without the guard: `[load] START ?delay=3000&error=1` → `[load] START` (plain) → `[load] SUCCESS` (plain, fast one resolves, 15 events render) → 3s later, `[load] CATCH ?delay=3000&error=1 Error: Server responded with 500` (the slow one *finally* resolves and unconditionally calls `setError(...)`, with nothing checking whether a newer request had already succeeded in the meantime). 
+  
+  The exact cause: two independent in-flight requests, no relationship between them, and whichever one's promise settles *last in wall-clock time* wins the final `setState` call — which is not necessarily whichever was *started* last. 
+  
+  With the guard, same two clicks: the second click's `abortRef.current?.abort()` cancels the first controller immediately, so the slow request's `catch` sees `AbortError` (not the 500) and returns early, never touching `error`. Confirmed: the 15 events stayed on screen the whole time, no flip.
+
+- [x] `AbortController` cancels the *request*. Does the effect's cleanup function run separately, or is aborting the fetch itself what you're doing inside the cleanup? Explain how the two connect in your implementation.
+
+  Both, and they're deliberately two separate call-sites doing the same `abort()` for two different reasons. `load()` itself calls `abortRef.current?.abort()` at its own start ([TimelinePage.tsx:69](js/react/timeline/TimelinePage.tsx)) — this is what fixes the *race*, cancelling a previous in-flight call before a new one begins, triggered by a user clicking Refresh while a request is already pending.
+  
+   The mount effect's own cleanup function separately calls `abortRef.current?.abort()` again ([TimelinePage.tsx:94](js/react/timeline/TimelinePage.tsx)) — this is the classic Demo 3 pattern, cancelling whatever's in flight if the component unmounts entirely (navigating away), so a `setState` never fires on a gone component. Same `AbortController`/`.abort()` mechanism, same `abortRef`, but two different triggers: a new `load()` call vs. the component disappearing. `AbortController` only cancels the underlying `fetch` (and makes its promise reject) — the effect's cleanup is React's own separate mechanism for "something happened, run this"; here, that something is "a new request started" or "this component is gone," and in both cases the response is to abort.
 
 ---
 
