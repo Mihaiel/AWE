@@ -14,33 +14,29 @@
 // Exercise 6, Demo 5: fetch() below now hits the dev-only backend
 // instead of the static data/people.json file. See DashboardPage.tsx's
 // own comment and EXERCISE_6.md Demo 5.
-import { useEffect, useState } from "react";
+//
+// Exercise 6, Demo 8: this page's own fetch/loading effect is now
+// useFetch() - the second of the "at least two" call sites that demo
+// asks for, alongside TimelinePage.tsx. Picked this one specifically
+// because, unlike TimelinePage, it never had its own error handling
+// built in Demo 6 - this page simply didn't have an error state before
+// this, it just stayed on "Loading case file..." forever if the fetch
+// failed. Reusing the hook gives it one for free; this page didn't
+// have to write any of that logic itself to get it.
 import { Link, useParams } from "react-router-dom";
 import type { Person } from "../../types.js";
 import Panel from "../components/Panel.js";
 import PersonCard from "./PersonCard.js";
+import { useFetch } from "../useFetch.js";
 import { API_BASE_URL } from "../apiConfig.js";
 
 export default function PersonDetailPage() {
   const { personId } = useParams();
-  const [people, setPeople] = useState<Person[] | null>(null);
+  const { data: people, error } = useFetch<Person[]>(`${API_BASE_URL}/api/people`);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      const res = await fetch(`${API_BASE_URL}/api/people`);
-      const json: unknown = await res.json();
-      if (!cancelled) {
-        setPeople(json as Person[]);
-      }
-    }
-
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  if (error) {
+    return <p className="warning-banner">Could not load people: {error}</p>;
+  }
 
   if (!people) {
     return <p>Loading case file&hellip;</p>;

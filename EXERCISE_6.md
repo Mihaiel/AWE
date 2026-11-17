@@ -277,12 +277,23 @@ The component doesn't HAVE this new state yet (no error tracking at all), which 
 
 **Tasks**
 
-- [ ] Extract the data-fetching logic (loading/error/empty state, the effect, cancellation) you've built across Demos 5–7 into at least one reusable custom hook (e.g. `useFetch<T>(url)` or a more specific `useEvidence()`), and use it in at least two different places.
+- [x] Extract the data-fetching logic (loading/error/empty state, the effect, cancellation) you've built across Demos 5–7 into at least one reusable custom hook (e.g. `useFetch<T>(url)` or a more specific `useEvidence()`), and use it in at least two different places.
+
+  Exactly the exercise's own suggested shape: `useFetch<T>(url)` in [js/react/useFetch.ts](js/react/useFetch.ts), generalizing the loading/`error`/`AbortController`-cancellation logic `TimelinePage.tsx` had built up one Demo at a time (5, 6, then 7) into one reusable function returning `{ data, error, refetch }` ([useFetch.ts:38](js/react/useFetch.ts)). 
+  
+  Used it in two places: [TimelinePage.tsx:42](js/react/timeline/TimelinePage.tsx) and [PersonDetailPage.tsx:35](js/react/people-locations/PersonDetailPage.tsx). Deliberately only 2 of the app's 5 views so far — migrating the rest is Demo 9's explicit job ("confirm no component calls fetch directly anymore"), not this one.
 
 **Questions** (depend on the tasks above)
 
-- [ ] What makes something a legitimate custom hook rather than just a regular helper function? What rule(s) does React enforce about how/where hooks (including your custom one) can be called?
-- [ ] Show the two places using your hook. What did extracting it save you from duplicating, and is there anything about the two usages that *couldn't* be shared and had to stay specific to each call site?
+- [x] What makes something a legitimate custom hook rather than just a regular helper function? What rule(s) does React enforce about how/where hooks (including your custom one) can be called?
+
+  It calls other hooks internally — `useState`, `useEffect`, `useCallback`, `useRef` ([useFetch.ts:30](js/react/useFetch.ts)). Apparently React's "Rules of Hooks" require hooks to only ever be called from the top level of a function component or another hook, never inside a loop, a condition, a nested regular function, or a plain helper you might call from anywhere. 
+  
+  That's exactly why `useFetch` can't just be "a function that happens to use some hooks" called ad hoc; once it calls `useState` etc., *it* inherits those same calling-convention restrictions, and the `use` prefix is what signals that to both React's own ESLint rule and to anyone reading the code.
+
+- [x] Show the two places using your hook. What did extracting it save you from duplicating, and is there anything about the two usages that *couldn't* be shared and had to stay specific to each call site?
+
+  `TimelinePage.tsx` and `PersonDetailPage.tsx`. Saved: the entire loading/error/`AbortController` dance — about 25 lines that used to be hand-written separately per component — down to one `useFetch<T>(url)` call each. What couldn't be shared: everything *after* getting the data back. `TimelinePage` needs the "genuinely zero events" vs. "the `?person=` filter matched nobody" distinction and the filtering itself; `PersonDetailPage` needs to `.find()` one person by `personId` and render a "not found" message if nothing matches. Neither belongs inside a generic fetch hook — they're specific to what each resource *means*, not to the mechanics of fetching it. Concretely verified this split is real: `PersonDetailPage` never had its own error handling before this (it just hung on "Loading…" forever on failure, confirmed in Demo 5); reusing the hook gave it a working error state for free, with zero new error-handling code written in that file.
 
 ---
 
