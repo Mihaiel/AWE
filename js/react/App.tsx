@@ -43,6 +43,7 @@ import WorkspacePage from "./workspace/WorkspacePage.js";
 // <main> below to show it in class): import KeyDemoThrowaway from "./KeyDemoThrowaway.js";
 // Exercise 6, Demo 1 live demo (same deal): import RenderSideEffectThrowaway from "./RenderSideEffectThrowaway.js";
 // Exercise 6, Demo 2 live demo (same deal): import EffectDepsThrowaway from "./EffectDepsThrowaway.js";
+// Exercise 6, Demo 3 live demo (same deal): import CleanupThrowaway from "./CleanupThrowaway.js";
 
 export default function App() {
   return (
@@ -57,6 +58,7 @@ export default function App() {
             {/* <KeyDemoThrowaway /> */}
             {/* <RenderSideEffectThrowaway /> */}
             {/* <EffectDepsThrowaway /> */}
+            {/* <CleanupThrowaway /> */}
             <Routes>
               <Route path="/" element={<DashboardPage />} />
               <Route path="/evidence" element={<EvidencePage />} />

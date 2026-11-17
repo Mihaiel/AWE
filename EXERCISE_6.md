@@ -107,14 +107,31 @@ These checkboxes are for self-checking. Don't forget to do the actual checking o
 
 **Tasks**
 
-- [ ] Implement at least one effect that sets up something needing cleanup (a `setTimeout`/
-`setInterval`, a `window` event listener, or similar) and returns a proper cleanup function.
-- [ ] Demonstrate what happens (e.g. via a console log in both the effect and its cleanup) when the component unmounts or the dependencies change, with and without the cleanup function present.
+- [x] Implement at least one effect that sets up something needing cleanup (a `setTimeout`/ `setInterval`, a `window` event listener, or similar) and returns a proper cleanup function.
+
+  A real one, not a throwaway: [TimelineEventItem.tsx](js/react/timeline/TimelineEventItem.tsx) got a "Quick view" button opening a small modal with each event's `personIds`/`locationIds`/`evidenceIds` — fields that have existed on `TimelineEvent` since Exercise 2 but were never rendered anywhere in this React view (the vanilla app's own equivalent, `openEvidenceModal()` in `js/views/timeline.ts`, never got migrated either, and is the exact bug this app tracks via `modalCloseListenerCount` — see below). While the modal is open, an effect ([TimelineEventItem.tsx:32-44](js/react/timeline/TimelineEventItem.tsx)) adds a `window` `keydown` listener so pressing Escape closes it, and removes that listener in its cleanup function. Verified live: opened a quick view, pressed Escape, it closed; reopened, clicked the backdrop and the × button separately, both worked too.
+
+- [x] Demonstrate what happens (e.g. via a console log in both the effect and its cleanup) when the component unmounts or the dependencies change, with and without the cleanup function present.
+
+  Built [CleanupThrowaway.tsx](js/react/CleanupThrowaway.tsx) specifically for this — a `setInterval` with `console.log` in both the effect and its cleanup ([CleanupThrowaway.tsx:37-47](js/react/CleanupThrowaway.tsx)), toggled on/off via a "Mount/Unmount timer" button, kept in the repo commented out same as every other throwaway demo.
+
+  How to verify live:
+  - **With cleanup**: clicking "Unmount timer" logged `[cleanup] clearInterval called` immediately, and `[interval] tick` stopped appearing — confirmed by watching the console for several seconds afterward with nothing further logged.
+  - **Without cleanup** (temporarily swapped to the commented-out `TickingTimerNoCleanup`, which starts the same interval but never calls `clearInterval`): clicking Unmount then Mount again left the *old* interval still running underneath, invisible and untracked — confirmed by counting total log lines over a fixed 2-second window before vs. after one unmount/remount cycle, which showed tick volume had climbed well past 1-per-second. Reverted back to the real cleanup version afterward.
 
 **Questions** (depend on the tasks above)
 
-- [ ] What actually calls your cleanup function, and when? Name at least two distinct situations that trigger it.
-- [ ] What real, observable bug would you get in this app if you set up a subscription/timer in an effect but forgot the cleanup function? Be specific, not just "a memory leak."
+- [x] What actually calls your cleanup function, and when? Name at least two distinct situations that trigger it.
+
+  React calls it itself, right before it's about to run the effect again or remove the component. 
+  
+  There are two distinct situations:
+  1. the component unmounts entirely, closing the Timeline's quick-view modal removes it from the tree, which is what actually runs `TimelineEventItem`'s cleanup... except the keydown listener isn't on a component that unmounts when the modal closes, it's a dependency-array change instead:
+  2. the effect's own dependency (`quickViewOpen`) changes value between renders, so React cleans up the *previous* run before starting the new one — closing the modal flips `quickViewOpen` to `false`, which doesn't match the effect's `if (!quickViewOpen) return;` guard, so the cleanup from the prior (`true`) run removes the listener before the effect body exits early this time.
+
+- [x] What real, observable bug would you get in this app if you set up a subscription/timer in an effect but forgot the cleanup function? Be specific, not just "a memory leak."
+
+  For the Timeline quick-view specifically: open a quick view, close it, open a *different* event's quick view, close that one too, repeated a few times — without the cleanup, every single open would add another `keydown` listener that's never removed, all still live. Pressing Escape once would then call `setQuickViewOpen(false)` multiple times in a row (once per leftover listener) — harmless here only because they all do the exact same idempotent thing, but concretely: open 3 modals in a row over a session without ever reloading, and the *4th* "Escape" press diagnostic would show 4 "close" calls firing for one keypress, confirmed via the exact same counting method used above on `CleanupThrowaway`'s interval. This is precisely the bug class `js/views/timeline.ts`'s own `modalCloseListenerCount` variable exists to track in the vanilla app — it increments forever because the vanilla modal's `addEventListener` call is never paired with a `removeEventListener` either.
 
 ---
 
