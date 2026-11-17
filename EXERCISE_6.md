@@ -219,14 +219,23 @@ The component doesn't HAVE this new state yet (no error tracking at all), which 
 
 **Tasks**
 
-- [ ] For at least one view, implement all three states explicitly: a loading indicator while the fetch is pending, a real error message if it fails (using your backend's on-demand error endpoint from Demo 4 to trigger it live), and a distinct "no data" empty state if the response is successful but contains nothing.
-- [ ] Make sure these three states are visually and structurally distinguishable from each other, not all three collapsing into "shows nothing."
+- [x] For at least one view, implement all three states explicitly: a loading indicator while the fetch is pending, a real error message if it fails (using your backend's on-demand error endpoint from Demo 4 to trigger it live), and a distinct "no data" empty state if the response is successful but contains nothing.
+
+  Picked `TimelinePage.tsx` — one resource, one fetch, no `Promise.all` juggling, easiest to show cleanly. Added `error` state alongside the existing `events` state ([TimelinePage.tsx:45-46](js/react/timeline/TimelinePage.tsx)); the fetch now checks `res.ok` and catches failures into `setError()` ([TimelinePage.tsx:65](js/react/timeline/TimelinePage.tsx)). Three explicit branches before the real render: error ([TimelinePage.tsx:76-78](js/react/timeline/TimelinePage.tsx)), loading (unchanged), empty-from-the-API ([TimelinePage.tsx:84-86](js/react/timeline/TimelinePage.tsx)).
+
+- [x] Make sure these three states are visually and structurally distinguishable from each other, not all three collapsing into "shows nothing."
+
+  Loading: plain unstyled `<p>`. Error: `.warning-banner` (red-tinted, already used elsewhere for warnings). Empty: `.hint-text` (muted gray, already used elsewhere for secondary hints) — three different, already-existing CSS treatments, not three invisible blank screens.
 
 **Questions** (depend on the tasks above)
 
-- [ ] Trigger your backend's error endpoint live and show the error state appearing. What state variable(s) are you tracking to distinguish "loading," "error," and "loaded successfully but empty" from each other?
-- [ ] The original vanilla app had a bug where a failed fetch could leave a loading spinner stuck forever because the cleanup/hide-loading step was never called on the error path. Explain specifically how your React version's state management makes that particular mistake
-harder to make (or show that it doesn't, and fix it).
+- [x] Trigger your backend's error endpoint live and show the error state appearing. What state variable(s) are you tracking to distinguish "loading," "error," and "loaded successfully but empty" from each other?
+
+  Two state variables, `events` and `error`, both independent of each other. Verified live: temporarily pointed the component's own fetch at `.../api/timeline?error=1`, reloaded — rendered exactly `"Could not load the timeline: Server responded with 500"` inside a `.warning-banner`. Separately, verified empty by temporarily replacing `public/data/timeline.json`'s contents with `[]` (the backend reads that file fresh per-request, no caching) — rendered `"No timeline events have been recorded for this case yet."` inside `.hint-text`, visibly different from both the error banner and the existing (different!) "No timeline events match the current filters" message that only applies when a `?person=` filter matches nobody. Restored the real file afterward, confirmed via `git diff` it came back byte-for-byte identical, and reverted the temporary `?error=1`.
+
+- [x] The original vanilla app had a bug where a failed fetch could leave a loading spinner stuck forever because the cleanup/hide-loading step was never called on the error path. Explain specifically how your React version's state management makes that particular mistake harder to make (or show that it doesn't, and fix it).
+
+  It doesn't make it structurally impossible, but it does make it much harder to miss by accident, and Demo 5 already caught a version of exactly this mistake before this demo even started: back then, `error` didn't exist at all, so a failed fetch left `events` (and therefore the loading check `if (!events)`) stuck on "loading" forever with only a console error to notice — confirmed live in Demo 5 by stopping the backend. The vanilla bug and that gap are the same root cause: a success-path side effect (`setData`/hiding the spinner) that's simply never reached when the `try` throws or the callback chain breaks, with nothing on the error path to compensate. The actual fix here isn't something React gives you for free — it's the same discipline the vanilla fix would've needed too: a `try`/`catch` (or `.catch()`) that explicitly sets a terminal, visible state (`setError(...)`) on the failure path, so "stuck loading forever" literally cannot render once that branch is taken — there's always a third outcome now, not just "success" and "nothing happens."
 
 ---
 

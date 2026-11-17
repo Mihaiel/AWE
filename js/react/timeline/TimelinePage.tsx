@@ -18,6 +18,23 @@
 // Exercise 6, Demo 5: fetch() below now hits the dev-only backend
 // instead of the static data/timeline.json file. See
 // DashboardPage.tsx's own comment and EXERCISE_6.md Demo 5.
+//
+// Exercise 6, Demo 6: picked this view (one resource, one fetch, no
+// Promise.all juggling) to build out all three states explicitly.
+// `error` is tracked separately from `events` - "loading" is
+// error === null && events === null, "error" is error !== null
+// (checked first, regardless of what `events` is), "loaded but the
+// case file genuinely has zero timeline events" is
+// error === null && events !== null && events.length === 0. That last
+// one is NOT the same thing as the existing
+// "No timeline events match the current filters" message further down
+// - this new check is unconditional, about the raw fetched data before
+// any `?person=` filtering; the existing one is about a filter that
+// matched nobody. Different causes, so deliberately different
+// messages instead of collapsing both into one "nothing to show" line.
+// See EXERCISE_6.md Demo 6 for how each was verified live (the error
+// path via the backend's own ?error=1, the empty path by temporarily
+// replacing public/data/timeline.json with [] and restoring it after).
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import type { TimelineEvent } from "../../types.js";
@@ -26,6 +43,7 @@ import { API_BASE_URL } from "../apiConfig.js";
 
 export default function TimelinePage() {
   const [events, setEvents] = useState<TimelineEvent[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
   const personFilter = searchParams.get("person");
 
@@ -33,10 +51,19 @@ export default function TimelinePage() {
     let cancelled = false;
 
     async function load() {
-      const res = await fetch(`${API_BASE_URL}/api/timeline`);
-      const json: unknown = await res.json();
-      if (!cancelled) {
-        setEvents(json as TimelineEvent[]);
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/timeline`);
+        if (!res.ok) {
+          throw new Error(`Server responded with ${res.status}`);
+        }
+        const json: unknown = await res.json();
+        if (!cancelled) {
+          setEvents(json as TimelineEvent[]);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Unknown error");
+        }
       }
     }
 
@@ -46,8 +73,16 @@ export default function TimelinePage() {
     };
   }, []);
 
+  if (error) {
+    return <p className="warning-banner">Could not load the timeline: {error}</p>;
+  }
+
   if (!events) {
     return <p>Loading case file&hellip;</p>;
+  }
+
+  if (events.length === 0) {
+    return <p className="hint-text">No timeline events have been recorded for this case yet.</p>;
   }
 
   const visibleEvents = personFilter
