@@ -32,6 +32,7 @@ import { HashRouter, Navigate, Route, Routes } from "react-router-dom";
 import { BookmarksProvider } from "./BookmarksContext.js";
 import Header from "./shell/Header.js";
 import NavBar from "./shell/NavBar.js";
+import DocumentTitleSync from "./shell/DocumentTitleSync.js";
 import DashboardPage from "./dashboard/DashboardPage.js";
 import EvidencePage from "./evidence/EvidencePage.js";
 import PeoplePage from "./people-locations/PeoplePage.js";
@@ -41,11 +42,13 @@ import WorkspacePage from "./workspace/WorkspacePage.js";
 // Exercise 4, Demo 4 live demo (uncomment both this and the line in
 // <main> below to show it in class): import KeyDemoThrowaway from "./KeyDemoThrowaway.js";
 // Exercise 6, Demo 1 live demo (same deal): import RenderSideEffectThrowaway from "./RenderSideEffectThrowaway.js";
+// Exercise 6, Demo 2 live demo (same deal): import EffectDepsThrowaway from "./EffectDepsThrowaway.js";
 
 export default function App() {
   return (
     <BookmarksProvider>
       <HashRouter>
+        <DocumentTitleSync />
         <div className="react-shell">
           <Header>
             <NavBar />
@@ -53,6 +56,7 @@ export default function App() {
           <main>
             {/* <KeyDemoThrowaway /> */}
             {/* <RenderSideEffectThrowaway /> */}
+            {/* <EffectDepsThrowaway /> */}
             <Routes>
               <Route path="/" element={<DashboardPage />} />
               <Route path="/evidence" element={<EvidencePage />} />

@@ -78,15 +78,28 @@ These checkboxes are for self-checking. Don't forget to do the actual checking o
 
 **Tasks**
 
-- [ ] Write a small `useEffect` example (can be a throwaway one first) with an empty dependency
-array, one with a populated dependency array, and one with no array at all, and observe how
-often each one actually runs.
-- [ ] Find a real, justified use for `useEffect` you'll need in this app (loading data is coming in Demo 5, so pick something else — e.g. syncing the document title to the current view).
+- [x] Write a small `useEffect` example (can be a throwaway one first) with an empty dependency array, one with a populated dependency array, and one with no array at all, and observe how often each one actually runs.
+
+  [EffectDepsThrowaway.tsx](js/react/EffectDepsThrowaway.tsx), kept in the repo commented out in [App.tsx](js/react/App.tsx) (same convention as Demo 1's own throwaway). Verified live, on a genuinely fresh page load (a brand-new tab, not a Vite HMR reload, which inflates the counts with extra remounts):
+  - No array: logged on mount, then again after every single click of either button.
+  - Empty array `[]`: logged **twice** on mount, not once — `<StrictMode>` (Demo 1) double-invokes effects on mount in dev specifically to simulate "mount, clean up, mount again" and surface missing-cleanup bugs (Demo 3's own topic). Never logged again afterward, no matter how many times either button was clicked.
+  - Array `[count]`: also double-logged on mount, then logged again only on the click that actually changed `count` — clicking "Increment other" re-rendered the component (the no-array effect fired again) but did *not* re-run this one.
+
+- [x] Find a real, justified use for `useEffect` you'll need in this app (loading data is coming in Demo 5, so pick something else — e.g. syncing the document title to the current view).
+
+  Took the exercise's own suggestion: [DocumentTitleSync.tsx](js/react/shell/DocumentTitleSync.tsx), rendered inside `<HashRouter>` in `App.tsx`. It reads the current route via `useLocation()` and sets `document.title` ([DocumentTitleSync.tsx:38-40](js/react/shell/DocumentTitleSync.tsx)) in a `useEffect` with `[location.pathname]` as the dependency. `document.title` is a browser API entirely outside React's own tree — nothing in props/state renders it — so it can't live in render itself; it has to be an effect. Verified live: navigating to each of the 5 views updates the browser tab's title correctly (`"Dashboard | ..."`, `"Evidence Catalogue | ..."`, `"People & Locations | ..."`, `"Locations | ..."`, `"Timeline | ..."`, `"Workspace | ..."`).
 
 **Questions** (depend on the tasks above)
 
-- [ ] What does React actually compare, between renders, to decide whether to re-run an effect with a populated dependency array? What happens if you omit a value your effect actually uses from that array?
-- [ ] What's the difference, in practice, between `useEffect(fn, [])` and just writing `fn()` directly in the component body? Why doesn't the second one work the way you'd expect for "run once"?
+- [x] What does React actually compare, between renders, to decide whether to re-run an effect with a populated dependency array? What happens if you omit a value your effect actually uses from that array?
+
+  React compares each value in the dependency array to its value from the *previous* render, using `Object.is` (the same reference-equality check `useState`'s setter uses) — if every value is unchanged, the effect is skipped; if even one differs, it re-runs. Omitting a value the effect actually uses means the effect keeps reading whatever that value was on the render where the effect last *ran*, not its current value — a stale closure. 
+  
+  Concretely, if `DocumentTitleSync`'s effect had `[]` instead of `[location.pathname]`, it would set the title once on mount and then never again, even though `location.pathname` keeps changing on every navigation — exactly the kind of bug this app would visibly have if I'd gotten that dependency array wrong.
+
+- [x] What's the difference, in practice, between `useEffect(fn, [])` and just writing `fn()` directly in the component body? Why doesn't the second one work the way you'd expect for "run once"?
+
+  `fn()` in the component body runs during render, every single render, with no way to limit it to "the first one" — there's no concept of "first render" available to plain code sitting in the function body, and (per Demo 1) render needs to stay pure, so putting `document.title = ...` there would be exactly the side-effect-in-render problem this whole chapter opened with. `useEffect(fn, [])` instead runs `fn` *after* React has committed the render to the screen, and only once, because React itself tracks "has this effect's dependency array changed since last time" and an empty array can only ever evaluate to "no" after the first run.
 
 ---
 
