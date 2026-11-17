@@ -34,6 +34,14 @@
 // below tracks the pending timeout so it can be cleared on unmount (or
 // before starting a new one).
 //
+// Exercise 6, Demo 1: `notes` used to be `readNotes()` called directly
+// in the render body, every render - a side effect during render
+// (reading a mutable external store), even though it "worked" because
+// it's a read, not a write, and this page always remounts fresh on
+// navigation anyway. Now `localStorage.getItem(STORAGE_KEY_NOTES)` only
+// runs once, via useState's lazy initializer, same pattern `draft`
+// right below already used. See EXERCISE_6.md Demo 1.
+//
 // Demo 2: the hypothesis form is one `useState<HypothesisDraft>`, not
 // 6 separate useState calls. These 6 fields are never read, reset, or
 // saved independently, every one of them is only ever used as part of
@@ -100,6 +108,7 @@ export default function WorkspacePage() {
   const { bookmarks } = useBookmarks();
   const [data, setData] = useState<WorkspaceData | null>(null);
   const [draft, setDraft] = useState<HypothesisDraft>(readHypothesisDraft);
+  const [notes] = useState(readNotes);
   const [showSaved, setShowSaved] = useState(false);
   const savedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -146,8 +155,6 @@ export default function WorkspacePage() {
   }
 
   const bookmarkedEvidence = data.evidence.filter((ev) => bookmarks.includes(ev.id));
-
-  const notes = readNotes();
   // Key by evidence.id, not array position - the exact fix for Exercise
   // 4 Demo 4's "index used as identifier" bug this app already diagnosed
   // once, in the vanilla version of this exact list.

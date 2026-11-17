@@ -40,6 +40,7 @@ import TimelinePage from "./timeline/TimelinePage.js";
 import WorkspacePage from "./workspace/WorkspacePage.js";
 // Exercise 4, Demo 4 live demo (uncomment both this and the line in
 // <main> below to show it in class): import KeyDemoThrowaway from "./KeyDemoThrowaway.js";
+// Exercise 6, Demo 1 live demo (same deal): import RenderSideEffectThrowaway from "./RenderSideEffectThrowaway.js";
 
 export default function App() {
   return (
@@ -51,6 +52,7 @@ export default function App() {
           </Header>
           <main>
             {/* <KeyDemoThrowaway /> */}
+            {/* <RenderSideEffectThrowaway /> */}
             <Routes>
               <Route path="/" element={<DashboardPage />} />
               <Route path="/evidence" element={<EvidencePage />} />
