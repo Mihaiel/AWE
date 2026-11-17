@@ -54,11 +54,16 @@
 // question for the evidence filters, a seven-field domain that - unlike
 // this one - does need individual field updates plus a few named bulk
 // operations, which is what makes it useReducer's job instead).
+//
+// Exercise 6, Demo 5: the 2 fetch() calls below now hit the dev-only
+// backend instead of the static data/*.json files. See
+// DashboardPage.tsx's own comment and EXERCISE_6.md Demo 5.
 import { useEffect, useRef, useState } from "react";
 import type { Evidence, Person } from "../../types.js";
 import { STORAGE_KEY_NOTES, STORAGE_KEY_HYPOTHESIS } from "../../storage.js";
 import { useBookmarks } from "../BookmarksContext.js";
 import { applyEvidenceOverrides } from "../evidenceOverrides.js";
+import { API_BASE_URL } from "../apiConfig.js";
 
 interface WorkspaceData {
   evidence: Evidence[];
@@ -130,8 +135,8 @@ export default function WorkspacePage() {
 
     async function load() {
       const [evidenceRes, peopleRes] = await Promise.all([
-        fetch("data/evidence.json"),
-        fetch("data/people.json"),
+        fetch(`${API_BASE_URL}/api/evidence`),
+        fetch(`${API_BASE_URL}/api/people`),
       ]);
       const evidenceJson: unknown = await evidenceRes.json();
       const peopleJson: unknown = await peopleRes.json();

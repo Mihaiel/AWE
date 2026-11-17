@@ -62,11 +62,16 @@
 // overrides right after fetching, and the two handlers below write
 // through writeEvidenceOverride() as well as updating `data`. See
 // evidenceOverrides.ts and EXERCISE_5.md Demo 9.
+//
+// Exercise 6, Demo 5: the 3 fetch() calls below now hit the dev-only
+// backend instead of the static data/*.json files. See
+// DashboardPage.tsx's own comment and EXERCISE_6.md Demo 5.
 import { useEffect, useReducer, useState } from "react";
 import type { Evidence, Person, Location } from "../../types.js";
 import { evidenceMentionsPerson } from "../../utils.js";
 import { useBookmarks } from "../BookmarksContext.js";
 import { applyEvidenceOverrides, writeEvidenceOverride } from "../evidenceOverrides.js";
+import { API_BASE_URL } from "../apiConfig.js";
 import EvidenceFilterToolbar from "./EvidenceFilterToolbar.js";
 import EvidenceCard from "./EvidenceCard.js";
 import EvidenceDetail from "./EvidenceDetail.js";
@@ -138,9 +143,9 @@ export default function EvidencePage() {
 
     async function load() {
       const [evidenceRes, peopleRes, locationsRes] = await Promise.all([
-        fetch("data/evidence.json"),
-        fetch("data/people.json"),
-        fetch("data/locations.json"),
+        fetch(`${API_BASE_URL}/api/evidence`),
+        fetch(`${API_BASE_URL}/api/people`),
+        fetch(`${API_BASE_URL}/api/locations`),
       ]);
       const evidenceJson: unknown = await evidenceRes.json();
       const peopleJson: unknown = await peopleRes.json();

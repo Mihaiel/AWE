@@ -10,11 +10,16 @@
 // from the case file, etc.) - handled below by just not assuming
 // `.find()` succeeds, same discipline as this app's `unknown` JSON
 // fetches, don't trust data you didn't build yourself.
+//
+// Exercise 6, Demo 5: fetch() below now hits the dev-only backend
+// instead of the static data/people.json file. See DashboardPage.tsx's
+// own comment and EXERCISE_6.md Demo 5.
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import type { Person } from "../../types.js";
 import Panel from "../components/Panel.js";
 import PersonCard from "./PersonCard.js";
+import { API_BASE_URL } from "../apiConfig.js";
 
 export default function PersonDetailPage() {
   const { personId } = useParams();
@@ -24,7 +29,7 @@ export default function PersonDetailPage() {
     let cancelled = false;
 
     async function load() {
-      const res = await fetch("data/people.json");
+      const res = await fetch(`${API_BASE_URL}/api/people`);
       const json: unknown = await res.json();
       if (!cancelled) {
         setPeople(json as Person[]);

@@ -14,11 +14,19 @@
 // copy of evidence.json - without it, this page's "Reviewed" count
 // would silently ignore those edits. See evidenceOverrides.ts and
 // EXERCISE_5.md Demo 9.
+//
+// Exercise 6, Demo 5: the 5 fetch() calls below now hit the dev-only
+// backend (see server/index.js) instead of importing/fetching the
+// static data/*.json files directly. Still a direct fetch() inside this
+// component's own effect, same shape as before - Demo 8/9 are what
+// extract this into a shared hook and a separate API-access layer, not
+// this demo. See EXERCISE_6.md Demo 5.
 import { useEffect, useState } from "react";
 import type { Case, Evidence, Person, Location, TimelineEvent } from "../../types.js";
 import { formatDate, getStatusBadgeClass } from "../../utils.js";
 import { useBookmarks } from "../BookmarksContext.js";
 import { applyEvidenceOverrides } from "../evidenceOverrides.js";
+import { API_BASE_URL } from "../apiConfig.js";
 import CaseSummaryCard from "./CaseSummaryCard.js";
 import StatCard from "../components/StatCard.js";
 import ReviewProgressBar from "../components/ReviewProgressBar.js";
@@ -48,11 +56,11 @@ export default function DashboardPage() {
 
     async function load() {
       const [caseRes, evidenceRes, peopleRes, locationsRes, timelineRes] = await Promise.all([
-        fetch("data/case.json"),
-        fetch("data/evidence.json"),
-        fetch("data/people.json"),
-        fetch("data/locations.json"),
-        fetch("data/timeline.json"),
+        fetch(`${API_BASE_URL}/api/case`),
+        fetch(`${API_BASE_URL}/api/evidence`),
+        fetch(`${API_BASE_URL}/api/people`),
+        fetch(`${API_BASE_URL}/api/locations`),
+        fetch(`${API_BASE_URL}/api/timeline`),
       ]);
       // unknown first, then asserted, same discipline as Exercise 2
       // Demo 6's dataLoader.ts, fetch().json() is `any` under the hood.

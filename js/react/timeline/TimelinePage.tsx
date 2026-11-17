@@ -14,10 +14,15 @@
 // to be dead code (unreachable with the full 15-entry dataset); a
 // person filter that matches nobody (a stale/mistyped link) now
 // actually reaches it, confirmed live with ?person=not-a-real-person.
+//
+// Exercise 6, Demo 5: fetch() below now hits the dev-only backend
+// instead of the static data/timeline.json file. See
+// DashboardPage.tsx's own comment and EXERCISE_6.md Demo 5.
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import type { TimelineEvent } from "../../types.js";
 import TimelineEventItem from "./TimelineEventItem.js";
+import { API_BASE_URL } from "../apiConfig.js";
 
 export default function TimelinePage() {
   const [events, setEvents] = useState<TimelineEvent[] | null>(null);
@@ -28,7 +33,7 @@ export default function TimelinePage() {
     let cancelled = false;
 
     async function load() {
-      const res = await fetch("data/timeline.json");
+      const res = await fetch(`${API_BASE_URL}/api/timeline`);
       const json: unknown = await res.json();
       if (!cancelled) {
         setEvents(json as TimelineEvent[]);

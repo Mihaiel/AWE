@@ -26,6 +26,10 @@
 // PeoplePage element across both routes, so React never unmounts it
 // when navigating between tabs, confirmed live (switching tabs doesn't
 // re-trigger the loading state).
+//
+// Exercise 6, Demo 5: the 2 fetch() calls below now hit the dev-only
+// backend instead of the static data/*.json files. See
+// DashboardPage.tsx's own comment and EXERCISE_6.md Demo 5.
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import type { Person, Location } from "../../types.js";
@@ -33,6 +37,7 @@ import PersonCard from "./PersonCard.js";
 import LocationCard from "./LocationCard.js";
 import Panel from "../components/Panel.js";
 import TabBar from "../components/TabBar.js";
+import { API_BASE_URL } from "../apiConfig.js";
 
 interface PeopleLocationsData {
   people: Person[];
@@ -51,8 +56,8 @@ export default function PeoplePage() {
 
     async function load() {
       const [peopleRes, locationsRes] = await Promise.all([
-        fetch("data/people.json"),
-        fetch("data/locations.json"),
+        fetch(`${API_BASE_URL}/api/people`),
+        fetch(`${API_BASE_URL}/api/locations`),
       ]);
       const peopleJson: unknown = await peopleRes.json();
       const locationsJson: unknown = await locationsRes.json();

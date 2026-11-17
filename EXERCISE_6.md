@@ -179,15 +179,39 @@ These checkboxes are for self-checking. Don't forget to do the actual checking o
 
 **Tasks**
 
-- [ ] Replace at least one view's data source (previously the static `data/*.json` fetch/import) with a real `fetch()` call to your new backend, wired up inside a `useEffect`.
-- [ ] Do the same for the rest of the app's data sources, so the whole app now reads from your backend rather than static files.
+- [x] Replace at least one view's data source (previously the static `data/*.json` fetch/import) with a real `fetch()` call to your new backend, wired up inside a `useEffect`.
+
+  Started with `DashboardPage.tsx` — its 5 `fetch("data/*.json")` calls now hit `` fetch(`${API_BASE_URL}/api/case`) `` etc. ([DashboardPage.tsx:59-63](js/react/dashboard/DashboardPage.tsx)), `API_BASE_URL` coming from a new tiny shared constant, [apiConfig.ts](js/react/apiConfig.ts) (just `"http://localhost:3001"` — not yet the API-access layer Demo 9 asks for, just avoiding the literal duplicated 6 times).
+
+- [x] Do the same for the rest of the app's data sources, so the whole app now reads from your backend rather than static files.
+
+  Same change in all 5 remaining spots that still fetched `data/*.json`: `EvidencePage.tsx`, `WorkspacePage.tsx`, `PeoplePage.tsx`, `PersonDetailPage.tsx`, `TimelinePage.tsx` — confirmed afterward with `grep -rn 'fetch("data/' js/react/`, zero matches left. Verified live with the actual backend running (`npm run server` + `npm run dev` together): all 5 routes render real data (18 evidence cards, 6 people, 15 timeline events, etc.), and the request log shows every fetch going to `localhost:3001/api/...`, not a static file.
 
 **Questions** (depend on the tasks above)
 
-- [ ] Walk through exactly what happens, in order, from the component mounting to the data actually being available to render: what does the effect do, when does it run, and what causes the component to re-render once the data arrives?
-- [ ] What's different about your component now compared to before (when data came from a static
-import/fetch of a local file). Specifically in terms of what state it needs to track that it
-didn't need before?
+- [x] Walk through exactly what happens, in order, from the component mounting to the data actually being available to render: what does the effect do, when does it run, and what causes the component to re-render once the data arrives?
+
+  1. The component function runs for the first time, `data` is `null`, it returns `<p>Loading case file…</p>`
+  
+  2. React commits that to the screen. 
+
+  3. After that commit, React runs the effect, it calls `fetch()` for every resource, `await`s each response, then `await`s `.json()` on each. 
+
+  4. Once all of that resolves, `setData(...)` is called. 
+
+  5. `setData` schedules a re-render, this is the actual trigger, not the fetch resolving by itself; nothing re-renders the component just because a `Promise` resolved somewhere. 
+
+  6. The component function runs again, this time `data` is the real object, so it renders the real UI instead of the loading paragraph.
+
+- [x] What's different about your component now compared to before (when data came from a static import/fetch of a local file). Specifically in terms of what state it needs to track that it didn't need before?
+
+  What's missing: stopped the backend and reloaded the Dashboard, it got stuck on "Loading case file…" forever, with `Uncaught (in promise) TypeError: Failed to fetch` in the console. 
+  
+  A static file fetch basically never fails this way (it's either there or a 404 that happens instantly, same render cycle); a real network request to a real server can hang, time out, or reject outright, and currently nothing catches that.
+
+`data` just never gets set, so the loading state never ends.
+
+The component doesn't HAVE this new state yet (no error tracking at all), which is exactly the gap: it now structurally NEEDS an error state it didn't need before, and currently doesn't have one.
 
 ---
 
