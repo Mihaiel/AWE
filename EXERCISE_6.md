@@ -301,13 +301,25 @@ The component doesn't HAVE this new state yet (no error tracking at all), which 
 
 **Tasks**
 
-- [ ] Organize your data-fetching code into distinct layers: a thin API-access layer (raw `fetch` calls, knows the backend's URLs/shapes and nothing else), your custom hook(s) from Demo 8 (application logic: loading/error/cancellation), and your components (UI only, no direct `fetch` calls anywhere in a component).
-- [ ] Confirm no component in the app calls `fetch` directly anymore.
+- [x] Organize your data-fetching code into distinct layers: a thin API-access layer (raw `fetch` calls, knows the backend's URLs/shapes and nothing else), your custom hook(s) from Demo 8 (application logic: loading/error/cancellation), and your components (UI only, no direct `fetch` calls anywhere in a component).
+
+  New [js/react/api.ts](js/react/api.ts): one `fetchX()` function per backend resource ([api.ts:29-49](js/react/api.ts)), plus 4 combined fetchers (`fetchDashboardData`, `fetchEvidenceCatalogueData`, `fetchWorkspaceData`, `fetchPeopleLocationsData`) for the views that need more than one resource at once — each just a `Promise.all()` over the single-resource functions, no new backend knowledge. [useFetch.ts](js/react/useFetch.ts) was rewritten to take a `fetcher` function instead of a URL string — it no longer imports `apiConfig.ts` or knows `/api/...` exists at all ([useFetch.ts:35](js/react/useFetch.ts)). 
+  
+  All 5 views now call `useFetch(someApiFunction)` and render `{ data, error }` — no component calls `fetch` itself anymore.
+
+- [x] Confirm no component in the app calls `fetch` directly anymore.
+
+  `grep -rnE "[^a-zA-Z_]fetch\(" js/react/` turns up exactly one real call site: `api.ts`'s own internal `getJson()` helper. Every other match is a comment mentioning "fetch()" in prose, not live code.
 
 **Questions** (depend on the tasks above)
 
-- [ ] If your backend's endpoint URLs or response shape changed tomorrow, how many files would you need to touch, and which ones? Would any component need to change?
-- [ ] What's the argument *against* this separation for a small app like this one? E.g. when would the extra layering be overkill rather than helpful? Do you think it's justified here?
+- [x] If your backend's endpoint URLs or response shape changed tomorrow, how many files would you need to touch, and which ones? Would any component need to change?
+
+  One file: `api.ts` — change the path string in the relevant `fetchX()` function (or its JSON-to-type mapping, if the shape itself changed). `useFetch.ts` wouldn't change (it never knew a URL existed). No component would change either, as long as the TypeScript type `fetchX()` returns stays the same shape — components only ever see `{ data, error }`, never a URL or a raw response.
+
+- [x] What's the argument *against* this separation for a small app like this one? E.g. when would the extra layering be overkill rather than helpful? Do you think it's justified here?
+
+  The honest argument against: for an app this size, with exactly one backend that will never be swapped, this is 3 files and ~2 extra indirection hops to change what could have stayed as "one `fetch()` call per component." If this app never grows past 5 views and 5 endpoints, the separation is mostly a teaching exercise, not something that pays for itself in saved effort — nobody is actually going to swap this backend out, and the previous Demo 8 state (hook calling `fetch()` directly) was already perfectly fine for 5 views. It's justified *here* specifically because this is a course about learning the pattern, not because this particular app has outgrown the simpler version — the same honest answer Demo 8 gave about `useFetch` itself: the value is organizational and educational at this scale, not a correctness or maintenance necessity yet. A genuinely small, finished app with no reason to expect its backend (or testing needs) to change would be fine without this layer at all.
 
 ---
 

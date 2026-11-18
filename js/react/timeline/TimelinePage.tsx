@@ -28,18 +28,18 @@
 // distinction (still two different messages, same reasoning as
 // before), and the ?person= filtering itself - neither belongs in a
 // generic fetch hook, they're specific to what a timeline event is.
+//
+// Demo 9: useFetch() took a raw URL string before; now it takes
+// fetchTimeline itself, from api.ts - this component no longer knows
+// "/api/timeline" or API_BASE_URL exist at all, only that something
+// can hand it a TimelineEvent[].
 import { Link, useSearchParams } from "react-router-dom";
-import type { TimelineEvent } from "../../types.js";
 import TimelineEventItem from "./TimelineEventItem.js";
 import { useFetch } from "../useFetch.js";
-import { API_BASE_URL } from "../apiConfig.js";
+import { fetchTimeline } from "../api.js";
 
 export default function TimelinePage() {
-  const {
-    data: events,
-    error,
-    refetch,
-  } = useFetch<TimelineEvent[]>(`${API_BASE_URL}/api/timeline`);
+  const { data: events, error, refetch } = useFetch(fetchTimeline);
   const [searchParams] = useSearchParams();
   const personFilter = searchParams.get("person");
 

@@ -23,16 +23,18 @@
 // this, it just stayed on "Loading case file..." forever if the fetch
 // failed. Reusing the hook gives it one for free; this page didn't
 // have to write any of that logic itself to get it.
+//
+// Demo 9: useFetch() took a raw URL string before; now it takes
+// fetchPeople itself, from api.ts - same reasoning as TimelinePage.tsx.
 import { Link, useParams } from "react-router-dom";
-import type { Person } from "../../types.js";
 import Panel from "../components/Panel.js";
 import PersonCard from "./PersonCard.js";
 import { useFetch } from "../useFetch.js";
-import { API_BASE_URL } from "../apiConfig.js";
+import { fetchPeople } from "../api.js";
 
 export default function PersonDetailPage() {
   const { personId } = useParams();
-  const { data: people, error } = useFetch<Person[]>(`${API_BASE_URL}/api/people`);
+  const { data: people, error } = useFetch(fetchPeople);
 
   if (error) {
     return <p className="warning-banner">Could not load people: {error}</p>;

@@ -27,51 +27,30 @@
 // when navigating between tabs, confirmed live (switching tabs doesn't
 // re-trigger the loading state).
 //
-// Exercise 6, Demo 5: the 2 fetch() calls below now hit the dev-only
-// backend instead of the static data/*.json files. See
-// DashboardPage.tsx's own comment and EXERCISE_6.md Demo 5.
-import { useEffect, useState } from "react";
+// Exercise 6, Demo 9: the Promise.all() fetch effect below is now
+// fetchPeopleLocationsData() (api.ts) + useFetch() - this component no
+// longer knows "/api/..." exists, has no raw fetch() call, and doesn't
+// own loading state itself. Also picked up a real error state it
+// never had before, the same free benefit PersonDetailPage got in
+// Demo 8.
 import { useLocation } from "react-router-dom";
-import type { Person, Location } from "../../types.js";
 import PersonCard from "./PersonCard.js";
 import LocationCard from "./LocationCard.js";
 import Panel from "../components/Panel.js";
 import TabBar from "../components/TabBar.js";
-import { API_BASE_URL } from "../apiConfig.js";
-
-interface PeopleLocationsData {
-  people: Person[];
-  locations: Location[];
-}
+import { useFetch } from "../useFetch.js";
+import { fetchPeopleLocationsData } from "../api.js";
 
 type Tab = "people" | "locations";
 
 export default function PeoplePage() {
-  const [data, setData] = useState<PeopleLocationsData | null>(null);
+  const { data, error } = useFetch(fetchPeopleLocationsData);
   const { pathname } = useLocation();
   const activeTab: Tab = pathname.endsWith("/locations") ? "locations" : "people";
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      const [peopleRes, locationsRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/people`),
-        fetch(`${API_BASE_URL}/api/locations`),
-      ]);
-      const peopleJson: unknown = await peopleRes.json();
-      const locationsJson: unknown = await locationsRes.json();
-
-      if (!cancelled) {
-        setData({ people: peopleJson as Person[], locations: locationsJson as Location[] });
-      }
-    }
-
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  if (error) {
+    return <p className="warning-banner">Could not load people &amp; locations: {error}</p>;
+  }
 
   if (!data) {
     return <p>Loading case file&hellip;</p>;

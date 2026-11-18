@@ -55,20 +55,20 @@
 // this one - does need individual field updates plus a few named bulk
 // operations, which is what makes it useReducer's job instead).
 //
-// Exercise 6, Demo 5: the 2 fetch() calls below now hit the dev-only
-// backend instead of the static data/*.json files. See
-// DashboardPage.tsx's own comment and EXERCISE_6.md Demo 5.
+// Exercise 6, Demo 9: the Promise.all() fetch effect below is now
+// fetchWorkspaceData() (api.ts) wrapped in withEvidenceOverrides()
+// (evidenceOverrides.ts), passed to useFetch() - same pattern as
+// DashboardPage.tsx. This component no longer calls fetch() itself.
 import { useEffect, useRef, useState } from "react";
-import type { Evidence, Person } from "../../types.js";
 import { STORAGE_KEY_NOTES, STORAGE_KEY_HYPOTHESIS } from "../../storage.js";
 import { useBookmarks } from "../BookmarksContext.js";
-import { applyEvidenceOverrides } from "../evidenceOverrides.js";
-import { API_BASE_URL } from "../apiConfig.js";
+import { withEvidenceOverrides } from "../evidenceOverrides.js";
+import { useFetch } from "../useFetch.js";
+import { fetchWorkspaceData } from "../api.js";
 
-interface WorkspaceData {
-  evidence: Evidence[];
-  people: Person[];
-}
+// Module-level, stable reference - see DashboardPage.tsx's own comment
+// for why this can't be recreated inside the component.
+const loadWorkspaceData = withEvidenceOverrides(fetchWorkspaceData);
 
 interface HypothesisDraft {
   suspectId: string;
@@ -111,7 +111,7 @@ function readNotes(): Record<string, string> {
 
 export default function WorkspacePage() {
   const { bookmarks } = useBookmarks();
-  const [data, setData] = useState<WorkspaceData | null>(null);
+  const { data, error } = useFetch(loadWorkspaceData);
   const [draft, setDraft] = useState<HypothesisDraft>(readHypothesisDraft);
   const [notes] = useState(readNotes);
   const [showSaved, setShowSaved] = useState(false);
@@ -130,30 +130,9 @@ export default function WorkspacePage() {
     };
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      const [evidenceRes, peopleRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/evidence`),
-        fetch(`${API_BASE_URL}/api/people`),
-      ]);
-      const evidenceJson: unknown = await evidenceRes.json();
-      const peopleJson: unknown = await peopleRes.json();
-
-      if (!cancelled) {
-        setData({
-          evidence: applyEvidenceOverrides(evidenceJson as Evidence[]),
-          people: peopleJson as Person[],
-        });
-      }
-    }
-
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  if (error) {
+    return <p className="warning-banner">Could not load the case file: {error}</p>;
+  }
 
   if (!data) {
     return <p>Loading case file&hellip;</p>;

@@ -63,24 +63,28 @@
 // through writeEvidenceOverride() as well as updating `data`. See
 // evidenceOverrides.ts and EXERCISE_5.md Demo 9.
 //
-// Exercise 6, Demo 5: the 3 fetch() calls below now hit the dev-only
-// backend instead of the static data/*.json files. See
-// DashboardPage.tsx's own comment and EXERCISE_6.md Demo 5.
-import { useEffect, useReducer, useState } from "react";
-import type { Evidence, Person, Location } from "../../types.js";
+// Exercise 6, Demo 9: the Promise.all() fetch effect below is now
+// fetchEvidenceCatalogueData() (api.ts) wrapped in
+// withEvidenceOverrides() (evidenceOverrides.ts), passed to
+// useFetch() - same pattern as DashboardPage.tsx/WorkspacePage.tsx.
+// The one difference: the status/relevance handlers below need to
+// apply a local update to the already-fetched evidence array right
+// after writing an override, without waiting on a refetch - that's
+// what useFetch's own `setData` escape hatch is for (see that file's
+// own comment for why it exists).
+import { useReducer, useState } from "react";
 import { evidenceMentionsPerson } from "../../utils.js";
 import { useBookmarks } from "../BookmarksContext.js";
-import { applyEvidenceOverrides, writeEvidenceOverride } from "../evidenceOverrides.js";
-import { API_BASE_URL } from "../apiConfig.js";
+import { writeEvidenceOverride, withEvidenceOverrides } from "../evidenceOverrides.js";
+import { useFetch } from "../useFetch.js";
+import { fetchEvidenceCatalogueData } from "../api.js";
 import EvidenceFilterToolbar from "./EvidenceFilterToolbar.js";
 import EvidenceCard from "./EvidenceCard.js";
 import EvidenceDetail from "./EvidenceDetail.js";
 
-interface EvidenceCatalogueData {
-  evidence: Evidence[];
-  people: Person[];
-  locations: Location[];
-}
+// Module-level, stable reference - see DashboardPage.tsx's own comment
+// for why this can't be recreated inside the component.
+const loadEvidenceCatalogue = withEvidenceOverrides(fetchEvidenceCatalogueData);
 
 interface EvidenceFiltersState {
   searchTerm: string;
@@ -125,7 +129,7 @@ function filtersReducer(
 
 export default function EvidencePage() {
   const { bookmarks, toggleBookmark } = useBookmarks();
-  const [data, setData] = useState<EvidenceCatalogueData | null>(null);
+  const { data, error, setData } = useFetch(loadEvidenceCatalogue);
   const [filters, dispatch] = useReducer(filtersReducer, INITIAL_FILTERS);
   const {
     searchTerm,
@@ -138,33 +142,9 @@ export default function EvidencePage() {
   } = filters;
   const [selectedEvidenceId, setSelectedEvidenceId] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      const [evidenceRes, peopleRes, locationsRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/evidence`),
-        fetch(`${API_BASE_URL}/api/people`),
-        fetch(`${API_BASE_URL}/api/locations`),
-      ]);
-      const evidenceJson: unknown = await evidenceRes.json();
-      const peopleJson: unknown = await peopleRes.json();
-      const locationsJson: unknown = await locationsRes.json();
-
-      if (!cancelled) {
-        setData({
-          evidence: applyEvidenceOverrides(evidenceJson as Evidence[]),
-          people: peopleJson as Person[],
-          locations: locationsJson as Location[],
-        });
-      }
-    }
-
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  if (error) {
+    return <p className="warning-banner">Could not load the evidence catalogue: {error}</p>;
+  }
 
   if (!data) {
     return <p>Loading case file&hellip;</p>;

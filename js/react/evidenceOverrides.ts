@@ -56,3 +56,24 @@ export function writeEvidenceOverride(evidenceId: string, patch: EvidenceOverrid
   const next = { ...overrides, [evidenceId]: { ...overrides[evidenceId], ...patch } };
   localStorage.setItem(STORAGE_KEY_EVIDENCE_OVERRIDES, JSON.stringify(next));
 }
+
+// Exercise 6, Demo 9: wraps any api.ts fetcher that returns an object
+// with an `evidence` field, applying applyEvidenceOverrides() to that
+// field right after the fetch resolves - exactly where it already ran
+// (Dashboard/Evidence/Workspace's own fetch effects), just relocated
+// now that those effects themselves moved into useFetch(). Lives here,
+// not in api.ts or useFetch.ts, on purpose: api.ts only knows the
+// backend's URLs/shapes (no localStorage), and useFetch is generic
+// over any T (no idea what "evidence" or "overrides" even mean) -
+// this is evidence-domain application logic, so it belongs next to
+// the rest of that domain's logic, composed onto a fetcher rather
+// than baked into either generic layer.
+export function withEvidenceOverrides<T extends { evidence: Evidence[] }>(
+  fetcher: (signal?: AbortSignal) => Promise<T>,
+): (signal?: AbortSignal) => Promise<T> {
+  return (signal) =>
+    fetcher(signal).then((result) => ({
+      ...result,
+      evidence: applyEvidenceOverrides(result.evidence),
+    }));
+}

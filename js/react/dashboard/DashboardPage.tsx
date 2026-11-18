@@ -15,77 +15,37 @@
 // would silently ignore those edits. See evidenceOverrides.ts and
 // EXERCISE_5.md Demo 9.
 //
-// Exercise 6, Demo 5: the 5 fetch() calls below now hit the dev-only
-// backend (see server/index.js) instead of importing/fetching the
-// static data/*.json files directly. Still a direct fetch() inside this
-// component's own effect, same shape as before - Demo 8/9 are what
-// extract this into a shared hook and a separate API-access layer, not
-// this demo. See EXERCISE_6.md Demo 5.
-import { useEffect, useState } from "react";
-import type { Case, Evidence, Person, Location, TimelineEvent } from "../../types.js";
-import { formatDate, getStatusBadgeClass } from "../../utils.js";
+// Exercise 6, Demo 9: the 5-way Promise.all() fetch effect below is
+// now fetchDashboardData() (api.ts, the combined fetcher for this
+// view's 5 resources) wrapped in withEvidenceOverrides()
+// (evidenceOverrides.ts), passed to useFetch(). This component no
+// longer calls fetch() itself, doesn't own loading state, and picked
+// up a real error state (see the `error` check below) it never had
+// before Demo 8/9's pattern existed.
 import { useBookmarks } from "../BookmarksContext.js";
-import { applyEvidenceOverrides } from "../evidenceOverrides.js";
-import { API_BASE_URL } from "../apiConfig.js";
+import { withEvidenceOverrides } from "../evidenceOverrides.js";
+import { useFetch } from "../useFetch.js";
+import { fetchDashboardData } from "../api.js";
+import { formatDate, getStatusBadgeClass } from "../../utils.js";
 import CaseSummaryCard from "./CaseSummaryCard.js";
 import StatCard from "../components/StatCard.js";
 import ReviewProgressBar from "../components/ReviewProgressBar.js";
 import MiniListItem from "../components/MiniListItem.js";
 import Badge from "../components/Badge.js";
 
-interface DashboardData {
-  caseData: Partial<Case>;
-  evidence: Evidence[];
-  people: Person[];
-  locations: Location[];
-  timeline: TimelineEvent[];
-}
+// Module-level, not recreated per render - useFetch's own effect
+// re-runs whenever the fetcher it's given changes identity, so this
+// has to stay a stable reference, the same reason fetchTimeline/
+// fetchPeople (api.ts) are plain exports instead of inline closures.
+const loadDashboardData = withEvidenceOverrides(fetchDashboardData);
 
 export default function DashboardPage() {
   const { bookmarks } = useBookmarks();
-  const [data, setData] = useState<DashboardData | null>(null);
+  const { data, error } = useFetch(loadDashboardData);
 
-  // Empty dependency array: re-fetches fresh every time this component
-  // mounts, which happens every time the shell switches back to
-  // "dashboard" (react-router's <Route> unmounts whichever page no
-  // longer matches the URL, same as Demo 9's old PAGES map did).
-  // Unlike the vanilla dashboard, there's no render-cache flag here at
-  // all, see EXERCISE_3.md questions 2 and 3.
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      const [caseRes, evidenceRes, peopleRes, locationsRes, timelineRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/case`),
-        fetch(`${API_BASE_URL}/api/evidence`),
-        fetch(`${API_BASE_URL}/api/people`),
-        fetch(`${API_BASE_URL}/api/locations`),
-        fetch(`${API_BASE_URL}/api/timeline`),
-      ]);
-      // unknown first, then asserted, same discipline as Exercise 2
-      // Demo 6's dataLoader.ts, fetch().json() is `any` under the hood.
-      const caseJson: unknown = await caseRes.json();
-      const evidenceJson: unknown = await evidenceRes.json();
-      const peopleJson: unknown = await peopleRes.json();
-      const locationsJson: unknown = await locationsRes.json();
-      const timelineJson: unknown = await timelineRes.json();
-
-      if (!cancelled) {
-        setData({
-          caseData: caseJson as Partial<Case>,
-          evidence: applyEvidenceOverrides(evidenceJson as Evidence[]),
-          people: peopleJson as Person[],
-          locations: locationsJson as Location[],
-          timeline: timelineJson as TimelineEvent[],
-        });
-      }
-    }
-
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  if (error) {
+    return <p className="warning-banner">Could not load the case file: {error}</p>;
+  }
 
   if (!data) {
     return <p>Loading case file&hellip;</p>;
