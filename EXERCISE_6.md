@@ -327,12 +327,49 @@ The component doesn't HAVE this new state yet (no error tracking at all), which 
 
 **Tasks**
 
-- [ ] Illustrate the full data flow for one piece of data, end to end: the JSON file -> your backend endpoint -> the API-access layer -> your custom hook -> the component -> what's on screen.
-- [ ] Explain a short, honest justification for one loading/error/empty-state UX decision you made (e.g. what your loading indicator looks like, how errors are worded, what "empty" looks like) and note one thing you'd do differently with more time.
+- [x] Illustrate the full data flow for one piece of data, end to end: the JSON file -> your backend endpoint -> the API-access layer -> your custom hook -> the component -> what's on screen.
+
+  Tracing timeline events, the exemplar view across this whole exercise:
+
+  1. JSON file: [public/data/timeline.json](public/data/timeline.json) — the 15 timeline events on disk, untouched since Exercise 2.
+  2. Backend endpoint: `server/index.js`'s `sendJsonFile()` reads that exact file ([server/index.js:81](server/index.js)) and `app.get("/api/timeline", ...)` serves it ([server/index.js:92](server/index.js)).
+  3. API-access layer: `fetchTimeline()` does a raw `fetch` against that URL and parses the JSON ([api.ts:45-47](js/react/api.ts)).
+  4. Custom hook: `useFetch(fetchTimeline)` owns the `AbortController`, calls it on mount, and turns the result into `{ data, error, refetch }` ([useFetch.ts:35-66](js/react/useFetch.ts)).
+  5. Component: `TimelinePage` calls that hook ([TimelinePage.tsx:42](js/react/timeline/TimelinePage.tsx)) and maps `events` into one `TimelineEventItem` per entry ([TimelinePage.tsx:88-90](js/react/timeline/TimelinePage.tsx)).
+  6. On screen: 15 event cards, oldest/newest sorted, each showing its date, title, description, location and certainty badge.
+
+  Verified live: `read_network_requests` during a load shows the exact pair `GET http://localhost:3001/api/timeline` (StrictMode's aborted first call, then the real 200), and the rendered page lists all 15 events in order.
+
+- [x] Explain a short, honest justification for one loading/error/empty-state UX decision you made (e.g. what your loading indicator looks like, how errors are worded, what "empty" looks like) and note one thing you'd do differently with more time.
+
+  The decision: every one of the app's 5 fetching views uses the exact same error-message shape, `"Could not load <thing>: {error}"`, where `{error}` is the raw `Error.message` the hook caught — e.g. [TimelinePage.tsx:55](js/react/timeline/TimelinePage.tsx) (`Could not load the timeline: …`), [DashboardPage.tsx:47](js/react/dashboard/DashboardPage.tsx) 
+  
+  and [WorkspacePage.tsx:134](js/react/workspace/WorkspacePage.tsx) (`Could not load the case file: …`), [PersonDetailPage.tsx:40](js/react/people-locations/PersonDetailPage.tsx) (`Could not load people: …`), [PeoplePage.tsx:52](js/react/people-locations/PeoplePage.tsx) (`Could not load people & locations: …`), [EvidencePage.tsx:146](js/react/evidence/EvidencePage.tsx) (`Could not load the evidence catalogue: …`). 
+  
+  Justification: a user hitting any broken view sees the same honest, scannable sentence shape every time, and the raw message (`"Server responded with 500"`, confirmed live below) is enough for *me*, the one person debugging this app right now, without inventing a translation layer for errors that don't exist yet.
+
+  What I'd do differently with more time: that raw message is also exactly what a real user would see, and `"Server responded with 500"` means nothing to someone who isn't the developer.
+  
+   I'd keep the technical string in the console/a "details" toggle and show something like "Something went wrong loading this page, try refreshing" by default.
 
 **Questions** (depend on the tasks above)
 
-- [ ] Walk through your diagram/illustration live, and for one step, explain what would break (and how you'd notice) if that step silently stopped happening.
-- [ ] Across Exercises 3–6, this app went from "read static files instantly" to "fetch from a real, sometimes-slow, sometimes-failing server". What did that change force you to add that wasn't needed before and was any of it needed *conceptually* even back when the data source was a static file, just less visible?
+- [x] Walk through your diagram/illustration live, and for one step, explain what would break (and how you'd notice) if that step silently stopped happening.
+
+  Step 2, the backend endpoint: if `app.get("/api/timeline", ...)` ([server/index.js:92](server/index.js)) were silently removed (or the server crashed), the frontend's `fetch` would hit a route that no longer exists. Confirmed live: `curl` against a made-up path on the running server returns Express's default `404`, not a hang or a silent empty response. 
+  
+  `api.ts`'s `getJson()` checks `res.ok` and throws `Server responded with 404` ([api.ts:23-24](js/react/api.ts)); `useFetch` catches that and sets `error` ([useFetch.ts:49-56](js/react/useFetch.ts)); `TimelinePage` renders the warning banner instead of the event list ([TimelinePage.tsx:52-58](js/react/timeline/TimelinePage.tsx)). 
+  
+  I would notice it fast, the whole page is replaced by `"Could not load the timeline: Server responded with 404"`, not a quiet gap in the list. Verified the same mechanism live this Demo using `?error=1` instead (a simulated `500` rather than a missing route), which produces the identical banner, just with `500` instead of `404` — the error-handling path doesn't care which failure caused it.
+
+- [x] Across Exercises 3–6, this app went from "read static files instantly" to "fetch from a real, sometimes-slow, sometimes-failing server". What did that change force you to add that wasn't needed before and was any of it needed *conceptually* even back when the data source was a static file, just less visible?
+
+  Forced to add: loading state (there's now a real gap between "component mounted" and "data available"), error state (a fetch can actually fail), cancellation (`AbortController`, so a stale request from a previous mount/param doesn't overwrite a newer one — Demo 7's constructed race), and the dev-only backend itself with its delay/error simulation.
+
+  Conceptually, loading state was always real, just invisible: even reading a static JSON file via `fetch()` (which this app already did from Exercise 3 on, before Demo 4's backend existed) is asynchronous — there's a `Promise` and a render before it resolves, it was just fast and unthrottled enough locally that nobody ever saw a loading screen. 
+  
+  Error state was the one genuinely new concept: a static file served by Vite's dev server essentially never 404s or 500s in practice, so there was no real failure mode to handle before — this exercise's backend had to go out of its way (`?error=1`) to manufacture one. 
+  
+  Cancellation/races were always theoretically possible (two fetches could always resolve out of order) but practically unreachable with instant, same-machine file reads — a real network with the backend's own `?delay=` knob is what finally made Demo 7's race constructible and worth fixing.
 
 ---
