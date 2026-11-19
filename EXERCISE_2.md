@@ -434,7 +434,7 @@ ticked. The table above is just a fast overview, tick the boxes inside each demo
 
 - [x] Open the run history for both workflows and be ready to read a failed run's logs live and explain, to someone unfamiliar with it, what failed and why.
 
-      Do this live off the deliberate-failure run from the first task above: open it in the Actions tab, click the failed `build` job, point at the red `tsc --noEmit` step and read the `TS2322` line directly, then point at the `deploy` job showing as skipped and explain that's `needs: build` doing its job, not a second failure.
+      It think it's best to do this live by opening the Actions tab, click the failed `build` job, point at the red `tsc --noEmit` step and read the `TS2322` line directly, then point at the `deploy` job showing as skipped and explain that's `needs: build` doing its job, not a second failure.
 
 **Questions** (depend on the tasks above)
 
