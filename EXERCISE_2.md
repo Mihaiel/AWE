@@ -324,7 +324,9 @@ ticked. The table above is just a fast overview, tick the boxes inside each demo
       js/views/dashboard.ts(13,10): error TS2532: Object is possibly 'undefined'.
       ```
 
-      `noUncheckedIndexedAccess` flagged this `array[i]` as possibly `undefined`, and the same thing showed up in every ordinary `for (let i = 0; i < array.length; i++)` loop across the view files (`js/views/dashboard.ts`, `js/views/people.ts`, `js/views/evidence.ts`, `js/views/timeline.ts`, `js/views/workspace.ts`), not just the lookup functions from Demo 5 (`js/utils.ts`). Fixed by adding `!` at each one: `i` is always in bounds by the loop condition, TypeScript just can't prove that from the loop's shape alone. It didn't reveal a bug, but it made visible how many places in this codebase quietly rely on "this loop is obviously safe" without the language actually backing that up.
+      `noUncheckedIndexedAccess` flagged this `array[i]` as possibly `undefined`, and the same thing showed up in every ordinary `for (let i = 0; i < array.length; i++)` loop across the view files (`js/views/dashboard.ts`, `js/views/people.ts`, `js/views/evidence.ts`, `js/views/timeline.ts`, `js/views/workspace.ts`), not just the lookup functions from Demo 5 (`js/utils.ts`). 
+      
+      Fixed by adding `!` at each one: `i` is always in bounds by the loop condition, TypeScript just can't prove that from the loop's shape alone. It didn't reveal a bug, but it made visible how many places in this codebase quietly rely on "this loop is obviously safe" without the language actually backing that up.
 
 - [x] When (if ever) is reaching for `any` the right call during a migration like this, versus a sign you should model the type properly? Where did you draw that line?
 
